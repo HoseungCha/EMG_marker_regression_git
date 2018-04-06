@@ -1,0 +1,28 @@
+head 1
+head 2
+head 3
+head 4
+left eyebrow inside
+left eyebrow outside
+left upper eye
+left down eye
+right eyebrow inside
+right eyebrow outside
+right upper eye
+right down eye
+central nose
+left nose
+right nose
+left cheek
+right cheek
+left dimple
+right dimple
+left upper lip
+central upper lip
+right upper lip
+left central lip
+right central lip
+left down lip
+central down lip
+right down lip
+jaw
