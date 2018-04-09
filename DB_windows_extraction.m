@@ -8,7 +8,6 @@
 % 1: DB_windows_extraion.m %%%%%current code%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 2: Label_markers_from_windows.m
 % 3: Feat_extraction_from_raw_window.m
-
 %--------------------------------------------------------------------------
 % developed by Ho-Seung Cha, Ph.D Student,
 % CONE Lab, Biomedical Engineering Dept. Hanyang University
@@ -61,14 +60,13 @@ load(fullfile(cd,'code_EMG_trigger_extraction','EMG_trg'));
 
 % set saving folder for windows
 Folder_Ances = sprintf('windows_ds_%dHz_ovsize_%d_delay_%d',SR_down,overlap_size,p_cam.delay);
-% [num2str(SR_down),'DB_v3'];
 path_ances = make_path_n_retrun_the_path(fullfile(parentdir,'DB',...
     'DB_processed'),Folder_Ances);
 
 %% get windows from EMG and marker set with each subject and trials
 for i_sub= 1 : N_subject
 %% get file path
-sub_name = Sname{i_sub}(5:7); % 피험자 이름
+sub_name = Sname{i_sub}(5:7); % get subject names
 % get path of csv
 [c_fname,c_fpath] = read_names_of_file_in_folder(Spath{i_sub},'*csv');
 % get path of bdf
@@ -107,7 +105,9 @@ for i_trl = 1 : N_trial
             round(p_emg.SR*p_cam.delay):end,:);% 이렇게 하는 이유는,
         %Motive에서 시작 버튼을 눌렀을 때카메라 데이터는 바로 측정되는데 비해,
         %EMG 동기화는 일정한 DELAY 후 측정되기 때문임
-        %(delay가 0일 경우 EMG와 카메라가 동시에 발생함)
+        %(delay를 무시할 경우(0값) EMG와 marker의 delay를 고려하지 않음
+        % 고려하지 않을 경우 우연히 EMG activation과 마커 움직임 동시에 일어나는 것을
+        % 그림을 통해 확인
 
         p_emg.trigger = p_emg.trg(2:end)-p_emg.trg(1)+1;% EMG 표정
         %동기화는 DELAY가 없기 때문에, DELAY 계산 필요 없음
@@ -148,7 +148,7 @@ for i_trl = 1 : N_trial
         mk.d1 = cat(1,zeros(1,6),diff(mk_data,1,1)); % 1st order differentiation
         mk.d2 = cat(1,zeros(2,6),diff(mk_data,2,1)); % 2nd order differentiation
 
-        %% window 적용 (평균)
+        %% window 적용
         mk_cell = struct2cell(mk);
         name_mk = fieldnames(mk);
         for i_mktype = 1 : 3
@@ -163,7 +163,7 @@ for i_trl = 1 : N_trial
                 sprintf('mark_%d',i_marker)); % set folder name
             fname = sprintf('sub_%03d_trl_%03d_%s',...
                 i_sub,i_trl,name_mk{i_mktype}); % name for saving
-            save(fullfile(path_temp,fname),'mark_win');
+            save(fullfile(path_temp,fname),'mark_win','trg_w');
         end
     end
 end
