@@ -10,6 +10,7 @@
 % contact: hoseungcha@gmail.com
 %--------------------------------------------------------------------------
 clc; close all; clear ;
+addpath(genpath(fullfile(cd,'functions')));
 % path for processed data
 parentdir=fileparts(pwd); % parent path which has DB files
 name_folder = 'windows_ds_10Hz_ovsize_50_delay_0';
@@ -36,12 +37,16 @@ N_emgpair = 3;
 % N_mark_type = 3; % 1:X,2:Y,3:Z
 N_ch_emg = 4;
 N_order_cc = 4;
-N_feat = 28;
+name_feat_list = {'RMS','WL','CC','SampEN'};
 %% determine normalization type
 str_use_z_norm = 'z_norm';
 str_use_cal_norm = 'cal_norm';
 id_type_norm = str_use_z_norm;%%%%%%%%%%%%%%%%%%%%decide normalization type
-
+%% decide feature to extract
+str_features2use = {'RMS','WL'};
+id_feat2use = contains(name_feat_list,str_features2use);
+N_feat = sum([id_feat2use(1:3)*N_ch_emg,...
+    id_feat2use(N_ch_emg)*N_ch_emg*N_ch_emg]);
 
 %% Get median value from marker
 for i_emg_pair = 1 : N_emgpair
@@ -69,19 +74,33 @@ for i_emg_pair = 1 : N_emgpair
                 %% EMG feat extraion
                 % time domain features 
                 curr_win = emg_win{i_win};
-                temp_rms = sqrt(mean(curr_win.^2));
-                temp_WL = sum(abs(diff(curr_win,2)));
-                temp_SampEN = SamplEN(curr_win,2);
-                temp_CC = featCC(curr_win,4);            
+                if id_feat2use(1) ==1
+                    temp_rms = sqrt(mean(curr_win.^2));
+                else
+                    temp_rms = [];
+                end
+                if id_feat2use(2) ==1
+                    temp_WL = sum(abs(diff(curr_win,2)));
+                else
+                    temp_WL = [];
+                end
+                if id_feat2use(3) ==1
+                    temp_SampEN = SamplEN(curr_win,2);
+                else
+                    temp_SampEN = [];
+                end
+                if id_feat2use(4) ==1
+                    temp_CC = featCC(curr_win,4);
+                else
+                    temp_CC = [];
+                end
                 temp_feat(i_win,:) = [temp_rms,temp_WL,temp_SampEN,temp_CC];
-                
                 % get image from raw emg
 %                 temp_img = mat2im(curr_win,parula(numel(curr_win)));
 %                 fname = sprintf('sub_%03d_trl_%03d_win_%03d',i_sub,i_trl,i_win);
 %                 imwrite(temp_img,fullfile(path_img,[fname,'.png']));
                 
             end
-            
             %% type of normalization
             switch id_type_norm
                 case str_use_cal_norm
@@ -101,5 +120,6 @@ for i_emg_pair = 1 : N_emgpair
         end
     end
     %% save
-    save(fullfile(path_emg_pair,name_folder),'feat_set');
+    name_save_file = sprintf('feat_set_%s',cat(2,str_features2use{:}));
+    save(fullfile(path_emg_pair,name_save_file),'feat_set');
 end

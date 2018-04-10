@@ -2,12 +2,11 @@
 % 마커 데이터 csv와 EMG의 windows를 추출하는 코드
 % 윈도우를 추출할 때 데이터의 수가 맞아야 하기 떄문에(아니면 하나 기준으로 잘라야
 % 하기 때문에 같은 코드에 작성
-% 좌표의 절대 위치값은 추정하기 보다는,
 % Nose 중심으로 좌표를 추출 한 후, xyz 및 az,el,r 모두 추출
 % EMG marker regression code processs
 % 1: DB_windows_extraion.m %%%%%current code%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 2: Label_markers_from_windows.m
-% 3: Feat_extraction_from_raw_window.m
+% 2: Marker_v_ext_from_windows.m
+% 3: EMG_feat_ext_from_windows.m
 %--------------------------------------------------------------------------
 % developed by Ho-Seung Cha, Ph.D Student,
 % CONE Lab, Biomedical Engineering Dept. Hanyang University
@@ -148,16 +147,14 @@ for i_trl = 1 : N_trial
         mk.d1 = cat(1,zeros(1,6),diff(mk_data,1,1)); % 1st order differentiation
         mk.d2 = cat(1,zeros(2,6),diff(mk_data,2,1)); % 2nd order differentiation
 
-        %% window 적용
+        %% window extraction
         mk_cell = struct2cell(mk);
         name_mk = fieldnames(mk);
         for i_mktype = 1 : 3
             [mark_win,~] = getWindows(mk_cell{i_mktype},...
                 p_cam.winsize,p_cam.wininc,[],[],[]); % get windows
-
             %% get parts of facial expression task
             mark_win = mark_win(1:trg_w(27));
-
             %% save
             path_temp = make_path_n_retrun_the_path(path_ances,...
                 sprintf('mark_%d',i_marker)); % set folder name

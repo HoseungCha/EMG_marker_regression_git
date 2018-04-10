@@ -48,6 +48,7 @@ str_use_cal_norm = 'cal_norm';
 id_type_norm = str_use_z_norm;
 
 %% Get median value from marker
+% for i_emg_pair = 1 : N_emgpair
 for i_mark = 1 : N_mark
     % folder name 4 saving
     name_folder = sprintf('mark_%d',i_mark);
