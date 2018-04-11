@@ -21,7 +21,7 @@ parentdir=fileparts(pwd); % parent path which has DB files
 addpath(genpath(fullfile(cd,'functions'))); % add path for functions
 
 %% read file path of data from raw DB
-[Sname,Spath] = read_names_of_file_in_folder(fullfile(parentdir,'DB','DB_raw'));
+[Sname,Spath] = read_names_of_file_in_folder(fullfile(parentdir,'DB','DB_raw2'));
 
 %% experiment information
 N_subject = length(Sname);
@@ -50,17 +50,17 @@ p_emg.BPF_cutoff_Freq = [20 450];
 [p_emg.bB,p_emg.bA] = butter(p_emg.filter_order, p_emg.BPF_cutoff_Freq/p_emg.Fn,'bandpass');
 
 % Notchfilter Parameters
-p_emg.NOF_Freq = [59.5 60.5];
+p_emg.NOF_Freq = [58 62];
 [p_emg.nB, p_emg.nA] = butter(p_emg.filter_order, p_emg.NOF_Freq/p_emg.Fn, 'stop');
 
 % get EMG triggers information
 % which was proccessed by code in folder (\code_EMG_trigger_extraction)
-load(fullfile(cd,'code_EMG_trigger_extraction','EMG_trg'));
+% load(fullfile(cd,'code_EMG_trigger_extraction','EMG_trg'));
 
 % set saving folder for windows
 Folder_Ances = sprintf('windows_ds_%dHz_ovsize_%d_delay_%d',SR_down,overlap_size,p_cam.delay);
 path_ances = make_path_n_retrun_the_path(fullfile(parentdir,'DB',...
-    'DB_processed'),Folder_Ances);
+    'DB_processed2'),Folder_Ances);
 
 %% get windows from EMG and marker set with each subject and trials
 for i_sub= 1 : N_subject
@@ -68,7 +68,7 @@ for i_sub= 1 : N_subject
 sub_name = Sname{i_sub}(5:7); % get subject names
 % get path of csv
 [c_fname,c_fpath] = read_names_of_file_in_folder(Spath{i_sub},'*csv');
-% get path of bdf
+% get path of bdfA
 [b_fname,b_fpath] = read_names_of_file_in_folder(Spath{i_sub},'*bdf');
 
 for i_trl = 1 : N_trial
