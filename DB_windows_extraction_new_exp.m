@@ -31,6 +31,7 @@ N_marker = 28;
 N_emgpair = 3;
 Name_Trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",1,4;"눈 세게 감기",1,5;"두려움",1,6;"행복",1,7;"키스",2,1;"무표정",2,2;"슬픔",2,3;"놀람",2,4};
 Name_FE = Name_Trg(:,1);
+N_FE = length(Name_FE);
 Idx_trg = cell2mat(Name_Trg(:,2:3));
 %% set parameters
 p_emg.SR = 2048;
@@ -123,7 +124,7 @@ for i_trl = 1 : N_trial
         % 고려하지 않을 경우 우연히 EMG activation과 마커 움직임 동시에 일어나는 것을
         % 그림을 통해 확인
 
-        p_emg.trigger = lat_trg(2:end)-lat_trg(1)+1;% EMG 표정
+        p_emg.trigger = lat_trg-lat_trg_onset+1;% EMG 표정
         %동기화는 DELAY가 없기 때문에, DELAY 계산 필요 없음
 
         %% get windows from EMG
@@ -179,4 +180,17 @@ for i_trl = 1 : N_trial
 end
 end
 
-
+%% to confim the DB was extracted well
+load(fullfile(path_ances,'emg_pair_1','sub_001_trl_001'));
+load(fullfile(path_ances,'mark_10','sub_001_trl_001_raw'));
+% simple feat extraction
+N_win = length(mark_win);
+emg_rms = zeros(N_win,4);
+mark_median = zeros(N_win,6);
+for i_win = 1 : length(mark_win)
+    emg_rms(i_win,:) = rms(emg_win{i_win});
+    mark_median(i_win,:) = median(mark_win{i_win});
+end
+plot(zscore(emg_rms(:,1)));hold on;plot(zscore(mark_median(:,1)))
+hold on;
+stem(trg_w,ones(N_FE,1))
