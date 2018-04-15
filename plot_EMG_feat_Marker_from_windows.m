@@ -16,3 +16,4 @@ addpath(genpath(fullfile(cd,'functions')));
 parentdir=fileparts(pwd); % parent path which has DB files
 name_folder = 'windows_ds_10Hz_ovsize_50_delay_0';
 path_DB = fullfile(parentdir,'DB','DB_processed',name_folder);
+%%
