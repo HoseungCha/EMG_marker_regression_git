@@ -68,7 +68,8 @@ path_ances = make_path_n_retrun_the_path(fullfile(parentdir,'DB',...
     'DB_processed2'),Folder_Ances);
 
 %% get windows from EMG and marker set with each subject and trials
-for i_sub= 1 : N_subject
+for i_sub= 5
+% for i_sub= 1 : N_subject
 %% get file path
 sub_name = Sname{i_sub}(5:7); % get subject names
 % get path of csv
@@ -76,7 +77,8 @@ sub_name = Sname{i_sub}(5:7); % get subject names
 % get path of bdf
 [~,path_bdf] = read_names_of_file_in_folder(Spath{i_sub},'*bdf');
 
-for i_trl = 1 : N_trial
+% for i_trl = 1 : N_trial
+for i_trl = 10
     %% read BDF
     OUT = pop_biosig(path_bdf{i_trl});
     %% get triggers of EMG corresponding to each subject and trial
