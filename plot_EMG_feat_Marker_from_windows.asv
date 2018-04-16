@@ -39,9 +39,8 @@ id_make_it_tight = true;
 subplot = @(m,n,p) subtightplot (m, n, p, [0.01 0.05], [0.1 0.01], [0.1 0.01]);
 if ~id_make_it_tight,  clear subplot;  end
 map_color = colormap(hsv);
-map_color4FE = map_color(1:floor(length(map_color)/n_FE):...
-    floor(length(map_color)/n_FE)*n_FE,:);
-
+map_color4FE = map_color(1:floor(length(map_color)_:)
+:end)
 
 %% get marker set
 for i_emg_pair = 1 : n_emg_pair
@@ -61,10 +60,10 @@ for i_mark = 1 : n_marker
        figure('Name',sprintf('Sub_%d_emg_pair_%d_mark_%d',...
            i_sub,i_emg_pair,i_mark))
        for i_trl = 1 : n_trl
-           subplot(n_trl,1,i_trl)
            % get EMG
            load(fullfile(path_emg,sprintf('sub_%03d_trl_%03d',i_sub,i_trl)),...
                'idx_seq_FE','trg_w'); 
+           subplot(n_trl,1,i_trl)
            % get feature
            tmp_feat = feat_set{i_sub,i_trl}; 
            % get marker
@@ -75,8 +74,7 @@ for i_mark = 1 : n_marker
            hold on;plot(tmp_marker,'r')
            % plot facial expression
            for i_FE = 1 : n_FE
-               hold on;
-               stem(trg_w(i_FE),max(max(tmp_feat(:,1:4))),'color',map_color4FE(idx_seq_FE(i_FE),:));
+               stem(trg_w(i_FE),
            end
        end
     end

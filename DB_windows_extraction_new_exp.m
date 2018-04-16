@@ -16,14 +16,12 @@
 % contact: hoseungcha@gmail.com
 %--------------------------------------------------------------------------
 clear; close all; clc
-
 %% prepare DB and functions
 % get toolbox
 addpath(genpath(fullfile(fileparts(fileparts(fileparts(cd))),'_toolbox')));
 path_parent=fileparts(cd); % parent path which has DB files
 % get function
 addpath(genpath(fullfile(cd,'functions'))); % add path for functions
-
 %% read file path of data from raw DB
 [Sname,Spath] = read_names_of_file_in_folder(fullfile(path_parent,'DB','DB_raw2'));
 
@@ -32,7 +30,9 @@ N_subject = length(Sname);
 N_trial = 20;
 N_marker = 28;
 N_emgpair = 3;
-Name_Trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",1,4;"눈 세게 감기",1,5;"두려움",1,6;"행복",1,7;"키스",2,1;"무표정",2,2;"슬픔",2,3;"놀람",2,4};
+Name_Trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",...
+    1,4;"눈 세게 감기",1,5;"두려움",1,6;"행복",1,7;"키스",2,1;"무표정",2,2;...
+    "슬픔",2,3;"놀람",2,4};
 Name_FE = Name_Trg(:,1);
 N_FE = length(Name_FE);
 Idx_trg = cell2mat(Name_Trg(:,2:3));
@@ -71,8 +71,8 @@ path_ances = make_path_n_retrun_the_path(fullfile(path_parent,'DB',...
     'DB_processed2'),Folder_Ances);
 
 %% get windows from EMG and marker set with each subject and trials
-for i_sub= 5
-% for i_sub= 1 : N_subject
+% for i_sub= 5
+for i_sub= 1 : N_subject
 %% get file path
 sub_name = Sname{i_sub}(5:7); % get subject names
 % get path of csv
@@ -80,8 +80,8 @@ sub_name = Sname{i_sub}(5:7); % get subject names
 % get path of bdf
 [~,path_bdf] = read_names_of_file_in_folder(Spath{i_sub},'*bdf');
 
-% for i_trl = 1 : N_trial
-for i_trl = 10
+for i_trl = 1 : N_trial
+% for i_trl = 10
     %% read BDF
     OUT = pop_biosig(path_bdf{i_trl});
     %% get triggers of EMG corresponding to each subject and trial
