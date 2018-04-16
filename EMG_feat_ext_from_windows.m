@@ -10,6 +10,9 @@
 % contact: hoseungcha@gmail.com
 %--------------------------------------------------------------------------
 clc; close all; clear ;
+% get toolbox
+addpath(genpath(fullfile(fileparts(fileparts(fileparts(cd))),'_toolbox')));
+% get functions
 addpath(genpath(fullfile(cd,'functions')));
 % path for processed data
 parentdir=fileparts(pwd); % parent path which has DB files

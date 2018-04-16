@@ -18,11 +18,14 @@
 clear; close all; clc
 
 %% prepare DB and functions
-parentdir=fileparts(pwd); % parent path which has DB files
+% get toolbox
+addpath(genpath(fullfile(fileparts(fileparts(fileparts(cd))),'_toolbox')));
+path_parent=fileparts(cd); % parent path which has DB files
+% get function
 addpath(genpath(fullfile(cd,'functions'))); % add path for functions
 
 %% read file path of data from raw DB
-[Sname,Spath] = read_names_of_file_in_folder(fullfile(parentdir,'DB','DB_raw2'));
+[Sname,Spath] = read_names_of_file_in_folder(fullfile(path_parent,'DB','DB_raw2'));
 
 %% experiment information
 N_subject = length(Sname);
@@ -64,7 +67,7 @@ p_emg.NOF_Freq = [58 62];
 
 % set saving folder for windows
 Folder_Ances = sprintf('windows_ds_%dHz_ovsize_%d_delay_%d',SR_down,overlap_size,p_cam.delay);
-path_ances = make_path_n_retrun_the_path(fullfile(parentdir,'DB',...
+path_ances = make_path_n_retrun_the_path(fullfile(path_parent,'DB',...
     'DB_processed2'),Folder_Ances);
 
 %% get windows from EMG and marker set with each subject and trials

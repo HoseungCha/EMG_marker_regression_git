@@ -11,6 +11,9 @@
 % contact: hoseungcha@gmail.com
 %--------------------------------------------------------------------------
 clc; close all; clear ;
+% get toolbox
+addpath(genpath(fullfile(fileparts(fileparts(fileparts(cd))),'_toolbox')));
+% get functions
 addpath(genpath(fullfile(cd,'functions')));
 %% experiment information
 Name_Trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",1,4;"눈 세게 감기",1,5;"두려움",1,6;"행복",1,7;"키스",2,1;"무표정",2,2;"슬픔",2,3;"놀람",2,4};

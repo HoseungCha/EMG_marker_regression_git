@@ -10,6 +10,8 @@
 % contact: hoseungcha@gmail.com
 %--------------------------------------------------------------------------
 clc; close all; clear ;
+% get toolbox
+addpath(genpath(fullfile(fileparts(fileparts(fileparts(cd))),'_toolbox')));
 % path for processed data
 parentdir=fileparts(pwd); % parent path which has DB files
 name_folder = 'windows_ds_10Hz_ovsize_50_delay_0';
