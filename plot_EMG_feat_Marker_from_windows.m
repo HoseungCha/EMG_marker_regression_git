@@ -35,17 +35,21 @@ path_DB_processed = fullfile(path_parent,'DB','DB_processed2',name_folder2analys
 n_sub = length(Sname);
 n_trl = 20;
 n_FE = 11;
+% enlarge subplot of matlab
 id_make_it_tight = true;
 subplot = @(m,n,p) subtightplot (m, n, p, [0.01 0.05], [0.1 0.01], [0.1 0.01]);
 if ~id_make_it_tight,  clear subplot;  end
 map_color = colormap(hsv);
 map_color4FE = map_color(1:floor(length(map_color)/n_FE):...
     floor(length(map_color)/n_FE)*n_FE,:);
-
+idx_RMS_feat = 1:4; % RMS
+period_FE_exp = 3;
+period_sampling = 0.1;
+n_seg2use = period_FE_exp/period_sampling;
 
 %% get marker set
 for i_emg_pair = 1 : n_emg_pair
-for i_mark = 1 : n_marker
+for i_mark = 10 : n_marker
 %     get path of marker set
     path_markerset = fullfile(path_DB_processed,...
         sprintf('z_norm_mark_%d',i_mark),'marker_set');
@@ -66,17 +70,30 @@ for i_mark = 1 : n_marker
            load(fullfile(path_emg,sprintf('sub_%03d_trl_%03d',i_sub,i_trl)),...
                'idx_seq_FE','trg_w'); 
            % get feature
-           tmp_feat = feat_set{i_sub,i_trl}; 
+           feat_tmp = feat_set{i_sub,i_trl}(:,idx_RMS_feat); 
            % get marker
-           tmp_marker = marker_set{i_sub,i_trl};
+           marker_tmp = marker_set{i_sub,i_trl};
+           % base-line preprocessing
+           feat_bs = mean(feat_tmp(trg_w(1):trg_w(1)+n_seg2use-1,idx_RMS_feat),1);
+           feat_bs_pc = feat_tmp(:,idx_RMS_feat) - feat_bs;
+           marker_bs = mean(marker_tmp(trg_w(1):trg_w(1)+n_seg2use-1,:),1);
+           mark_bs_pc = marker_tmp - marker_bs;
+           % plot
+           figure;
+           plot(feat_tmp,'b'); hold on; plot(marker_tmp,'r')
+           
+           
+           
            % plot emg
-           plot(tmp_feat(:,1:4),'b')
+           figure;
+           plot(feat_tmp,'b')
            % plot marker
-           hold on;plot(tmp_marker,'r')
+           hold on;plot(marker_tmp,'r')
            % plot facial expression
            for i_FE = 1 : n_FE
                hold on;
-               stem(trg_w(i_FE),max(max(tmp_feat(:,1:4))),'color',map_color4FE(idx_seq_FE(i_FE),:));
+               stem(trg_w(i_FE),max(max(feat_tmp)),...
+                   'color',map_color4FE(idx_seq_FE(i_FE),:));
            end
        end
     end

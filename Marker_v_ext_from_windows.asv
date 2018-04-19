@@ -82,13 +82,13 @@ for i_sub = 1 : n_sub
     for i_trl = 1 : n_trl
         for i_mark = 10 : n_mark
             % display of marker
-%             disp(name_mark(i_mark));
+            disp(name_mark(i_mark));
             
             % folder name 4 saving
-            name_mark_folder = sprintf('mark_%d',i_mark);
+            name_mark = sprintf('mark_%d',i_mark);
             
             % set path
-            path_mark = fullfile(path_DB_process,name_mark_folder);
+            path_mark = fullfile(path_DB_process,name_mark);
             marker_set = cell(n_sub,n_trl);
             
             % read marker
@@ -110,7 +110,7 @@ for i_sub = 1 : n_sub
 
             %--------------------save median_v----------------------------%
             % set saving folder;
-            name_folder = ['median_v','_',name_mark_folder];
+            name_folder = ['median_v','_',name_mark];
             path_tmp = make_path_n_retrun_the_path(path_DB_process,name_folder);
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
             
@@ -118,7 +118,7 @@ for i_sub = 1 : n_sub
             save(fullfile(path_tmp,name_file),'mark_median');
             
             % plot
-%             figure;plot(mark_median)
+            figure;plot(mark_median)
             %-------------------------------------------------------------%    
             
             % extracted part of preiod of facial expression
@@ -185,7 +185,7 @@ for i_sub = 1 : n_sub
             
             %--------------------save median_v----------------------------%
             % set saving folder;
-            name_folder = ['median_v_proc','_',name_mark_folder];
+            name_folder = ['median_v_proc','_',name_mark];
             path_tmp = make_path_n_retrun_the_path(path_DB_process,name_folder);
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
             
@@ -193,38 +193,38 @@ for i_sub = 1 : n_sub
             save(fullfile(path_tmp,name_file),'mark_median_proc');
             
             % plot
-%             figure;title('substitue signal part who ranged with non-expression with zeros')
-%             plot(mark_median_proc)
-%             text(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-%                 min(min(mark_median_proc))*ones(n_FE,1),...
-%                 name_FE(idx_FE_2_change))
-%             hold on;
-%             stem(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-%                 min(min(mark_median_proc))*ones(n_FE,1),'k')
-%             hold on
-%             stem(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-%                 max(max(mark_median_proc))*ones(n_FE,1),'k')
+            figure;title('substitue signal part who ranged with non-expression with zeros')
+            plot(mark_median_proc)
+            text(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
+                min(min(mark_median_proc))*ones(n_FE,1),...
+                name_FE(idx_FE_2_change))
+            hold on;
+            stem(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
+                min(min(mark_median_proc))*ones(n_FE,1),'k')
+            hold on
+            stem(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
+                max(max(mark_median_proc))*ones(n_FE,1),'k')
             %-------------------------------------------------------------% 
             
             
             % restore signal wih baseline of non-expression
             mark_median_cell_return = mat2cell(mark_median_proc,...
                 n_seg+n_seg2margin*2*ones(n_FE,1),n_mark_type);
-            mark_restored = cell(size(mark_median_cell_return));
+            mark_reconst = cell(size(mark_median_cell_return));
             for i = 1 : numel(mark_median_cell_return)
                 % 처음 무표정 값의 baseline으로 맞추어줌
-                mark_restored{i} = mark_median_cell_return{i}+mark_median_each_front{1};
+                mark_reconst{i} = mark_median_cell_return{i}+mark_median_each_front{1};
             end
-            mark_restored_mat = cell2mat(mark_restored);
+            mark_reconst_mat = cell2mat(mark_reconst);
             
             %-----------save resored singal with fixed baseline-----------%
             % set saving folder;
-            name_folder = ['median_v_restored','_',name_mark_folder];
+            name_folder = ['median_v_proc','_',name_mark];
             path_tmp = make_path_n_retrun_the_path(path_DB_process,name_folder);
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
             
             % save
-            save(fullfile(path_tmp,name_file),'mark_restored_mat');
+            save(fullfile(path_tmp,name_file),'mark_reconst_mat');
             
             % plot
 %             figure;title('restored signal who ranged with non-expression with zeros and baselin_with_non-exp')

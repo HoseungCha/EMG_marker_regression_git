@@ -46,10 +46,10 @@ p_emg.rc_matrix = [1,2;1,3;2,3]; % 오른쪽 전극 조합
 p_emg.lc_matrix = [10,9;10,8;9,8]; % 왼쪽 전극 조합
 
 % set window size and overlap size
-overlap_size = 50;
-SR_down = 10;
-[p_cam.winsize,p_cam.wininc] = calculate_window(p_cam.SR,SR_down,overlap_size);
-[p_emg.winsize,p_emg.wininc] = calculate_window(p_emg.SR,SR_down,overlap_size);
+overlap_size = 0;
+SR_down = 120;
+[p_cam.winsize,p_cam.wininc] = calculate_window(p_cam.SR,SR_down,overlap_size,1);
+[p_emg.winsize,p_emg.wininc] = calculate_window(p_emg.SR,SR_down,overlap_size,1);
 
 % Bandpassfilter Parameters
 p_emg.Fn = p_emg.SR/2;
@@ -156,6 +156,7 @@ for i_trl = 1 : N_trial
     %% nose 마커 기준으로 뺴줌
     nose_marker = permute(Marker_Data(:,2,:),[1 3 2]);
     for i_marker = 1 : NMarkers
+%     for i_marker = 1:
         %% get relative marker values 
         if i_marker == 2 % marker가 nose일 경우  빼주지 말고 그냥 넣어줌
             mark_nose = nose_marker;
