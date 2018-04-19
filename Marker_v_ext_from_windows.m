@@ -14,7 +14,7 @@
 clc; clear; close all;
 
 %-----------------------Code anlaysis parmaters----------------------------
-% name of folder to analyze in this code
+% name of process DB to analyze in this code
 name_folder = 'windows_ds_10Hz_ovsize_50_delay_0';
 
 % determine normalization type
@@ -80,7 +80,7 @@ n_mark_type = length(idx_marker_type); % 1:X,2:Y,3:Z
 % Get median value from marker
 for i_sub = 1 : n_sub
     for i_trl = 1 : n_trl
-        for i_mark = 10 : n_mark
+        for i_mark = 1 : n_mark
             % display of marker
 %             disp(name_mark(i_mark));
             
