@@ -59,8 +59,12 @@ period_FE_exp = 3;
 period_sampling = 0.1;
 n_FE = length(name_FE);
 n_seg = period_FE_exp/period_sampling;
-period_margin_FE =1; % 표정 인스트럭션 전 후 1초
-n_seg2margin = period_margin_FE/period_sampling;
+period_margin_FE_front =1; % 표정 인스트럭션 전 1초
+n_seg2margin_front = period_margin_FE_front/period_sampling;
+
+period_margin_FE_end = 0; % 표정 인스트럭션 전 2초
+n_seg2margin_end= period_margin_FE_end/period_sampling;
+
 
 idx_marker_type = 1 : 3;% 1:X,2:Y,3:Z
 n_mark_type = length(idx_marker_type); % 1:X,2:Y,3:Z
@@ -133,14 +137,14 @@ for i_sub = 1 : n_sub
             save(fullfile(path_tmp,name_file),'emg_feat');
             
             % plot
-            figure;plot(emg_feat)
+%             figure;plot(emg_feat)
             %-------------------------------------------------------------%    
             
             % extracted part of preiod of facial expression
             emg_segment = cell(n_FE,1);
             for i_FE = 1 : n_FE
-                emg_segment{idx_seq_FE(i_FE)} = emg_feat(trg_w(i_FE)-n_seg2margin:...
-                    trg_w(i_FE)+n_seg-1+n_seg2margin,:);
+                emg_segment{idx_seq_FE(i_FE)} = emg_feat(trg_w(i_FE)-n_seg2margin_front:...
+                    trg_w(i_FE)+n_seg-1+n_seg2margin_end,:);
             end
             % change it in the order like
             %["무표정";"화남";"어금니깨물기";"비웃음(왼쪽)";"비웃음(오른쪽)";
@@ -151,51 +155,10 @@ for i_sub = 1 : n_sub
             % get median mark values of non-expression
             emg_feat_nonexp = emg_segment{1};
             
-%             % substract median values of non-expression from other median mark values
-%             %             mark_median_cell_non_exp = cellfun(@(x) x-median(mark_median_nonexp),...
-%             %                 mark_median_cell,'UniformOutput',false);
-%             
-%             % get median values of front and end of signal segment whose
-%             % lengh is n_seg2margin (10 --> 1-sec)
-%             mark_median_each_front = cellfun(@(x) median(x(1:n_seg2margin,:)), emg_segment,...
-%                 'UniformOutput',false);
-%             
-%             % substract median values of front and end of signal from
-%             % median mark values
-%             mark_median_cell_each_front = cellfun(@(x) x-median(x(1:n_seg2margin,:)), emg_segment,...
-%                 'UniformOutput',false);
-%             
-%             % substitue front and end part with zeros
-%             % cf: this values shoud have been zeros if marker is collected
-%             % properly
-%             mark_median_cell_each_frontend_zero = cellfun(@(x)...
-%                 x-[x(1:n_seg2margin,:);zeros(n_seg+2*n_seg2margin-2*n_seg2margin,3);...
-%                 x(n_seg+2*n_seg2margin-n_seg2margin+1:n_seg+2*n_seg2margin,:)],...
-%                 mark_median_cell_each_front,'UniformOutput',false);
-            
             % to plot, change cell to mat
             emg_segment_proc = cell2mat(emg_segment);
             
-            
-%             % substitue signal part who ranged with non-expression with zeros
-%             % it's beacause this values shoud have been zeros if marker is collected
-%             % properly
-%             % I should first get min and max for non-expression to get
-%             % ranges of non-exprression
-%             minmax_mark_medain = minmax(emg_segment_prco(1:n_seg+2*n_seg2margin,:)');
-%             
-%             for i_marktype = 1 : n_mark_type
-%                 % get idices of values who are in range of
-%                 % non - expression
-%                 idx_min = emg_segment_prco(:,i_marktype)>=minmax_mark_medain(i_marktype,1);
-%                 idx_max = emg_segment_prco(:,i_marktype)<=minmax_mark_medain(i_marktype,2);
-%                 idx_range_in_nonexp = idx_min.*idx_max;
-%                 
-%                 % substitue idices with zeros
-%                 emg_segment_prco(logical(idx_range_in_nonexp),i_marktype) = 0;
-%             end
-            
-            %--------------------save median_v----------------------------%
+            %--------------------save emg_seg----------------------------%
             % set saving folder;
             name_folder = ['feat_seg_',name_emgpair,'_',cat(2,str_features2use{:})];
 %             name_folder = ['median_v_proc','_',name_emgpair];
@@ -203,20 +166,23 @@ for i_sub = 1 : n_sub
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
             
             % save
-%             save(fullfile(path_tmp,name_file),'emg_segment_proc');
+            save(fullfile(path_tmp,name_file),'emg_segment_proc');
             
             % plot
-            figure;
-            plot(emg_segment_proc)
-            text(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-                min(min(emg_segment_proc))*ones(n_FE,1),...
-                name_FE(idx_FE_2_change))
-            hold on;
-            stem(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-                min(min(emg_segment_proc))*ones(n_FE,1),'k')
-            hold on
-            stem(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-                max(max(emg_segment_proc))*ones(n_FE,1),'k')
+%             figure;
+%             plot(emg_segment_proc)
+%             text(1:n_seg+n_seg2margin_front+...
+%                 n_seg2margin_end:n_FE*(n_seg+n_seg2margin_front+...
+%                 n_seg2margin_end),...
+%                 min(min(emg_segment_proc))*ones(n_FE,1),...
+%                 name_FE(idx_FE_2_change))
+%             hold on;
+%             stem(1:n_seg+n_seg2margin_front+n_seg2margin_end:n_FE*...
+%                 (n_seg+n_seg2margin_front+n_seg2margin_end),...
+%                 min(min(emg_segment_proc))*ones(n_FE,1),'k')
+%             hold on
+%             stem(1:n_seg+n_seg2margin_front+n_seg2margin_end:n_FE*(n_seg+n_seg2margin_front+n_seg2margin_end),...
+%                 max(max(emg_segment_proc))*ones(n_FE,1),'k')
             %-------------------------------------------------------------% 
             disp([i_sub,i_trl]);
         end

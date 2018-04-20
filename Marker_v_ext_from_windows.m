@@ -1,7 +1,6 @@
 %--------------------------------------------------------------------------
 % 1: DB_windows_extraion.m
-% 2-1: Marker_v_ext_from_windows.m %%%%%current code%%%%%%%%%%%%%%
-% 2-2: concatinating_windows.m 
+% 2: Marker_v_ext_from_windows.m %%%%%current code%%%%%%%%%%%%%%
 % 3: EMG_feat_ext_from_windows.m
 % you should check Code anlaysis parmaters before starting code
 %--------------------------------------------------------------------------
@@ -17,6 +16,7 @@ clc; clear; close all;
 % name of process DB to analyze in this code
 name_folder = 'windows_ds_10Hz_ovsize_50_delay_0';
 
+id_plot = 0;
 % determine normalization type
 % str_use_z_norm = 'z_norm';
 % str_use_cal_norm = 'cal_norm';
@@ -66,8 +66,11 @@ period_FE_exp = 3;
 period_sampling = 0.1;
 n_FE = length(name_FE);
 n_seg = period_FE_exp/period_sampling;
-period_margin_FE =1; % 표정 인스트럭션 전 후 1초
-n_seg2margin = period_margin_FE/period_sampling;
+period_margin_FE_front =1; % 표정 인스트럭션 전 후 1초
+n_seg2margin_front = period_margin_FE_front/period_sampling;
+period_margin_FE_end =0; % 표정 인스트럭션 전 후 1초
+n_seg2margin_end = period_margin_FE_end/period_sampling;
+n_seg_total = n_seg+n_seg2margin_front+n_seg2margin_end;
 
 idx_marker_type = 1 : 3;% 1:X,2:Y,3:Z
 n_mark_type = length(idx_marker_type); % 1:X,2:Y,3:Z
@@ -117,16 +120,18 @@ for i_sub = 1 : n_sub
             % save
             save(fullfile(path_tmp,name_file),'mark_median');
             
+            if(id_plot)
             % plot
-%             figure;plot(mark_median)
+            figure;plot(mark_median)
+            end
             %-------------------------------------------------------------%    
             
             % extracted part of preiod of facial expression
             mark_median_cell = cell(n_FE,1);
             mark_median_diff_cell= cell(n_FE,1);
             for i_FE = 1 : n_FE
-                mark_median_cell{idx_seq_FE(i_FE)} = mark_median(trg_w(i_FE)-n_seg2margin:...
-                    trg_w(i_FE)+n_seg-1+n_seg2margin,:);
+                mark_median_cell{idx_seq_FE(i_FE)} = mark_median(trg_w(i_FE)-n_seg2margin_front:...
+                    trg_w(i_FE)+n_seg-1+n_seg2margin_end,:);
 
             end
             % change it in the order like
@@ -145,20 +150,21 @@ for i_sub = 1 : n_sub
             
             % get median values of front and end of signal segment whose
             % lengh is n_seg2margin (10 --> 1-sec)
-            mark_median_each_front = cellfun(@(x) median(x(1:n_seg2margin,:)), mark_median_cell,...
+            mark_median_each_front = cellfun(@(x) median(x(1:n_seg2margin_front,:)), mark_median_cell,...
                 'UniformOutput',false);
             
             % substract median values of front and end of signal from
             % median mark values
-            mark_median_cell_each_front = cellfun(@(x) x-median(x(1:n_seg2margin,:)), mark_median_cell,...
+            mark_median_cell_each_front = cellfun(@(x) x-median(x(1:n_seg2margin_front,:)), mark_median_cell,...
                 'UniformOutput',false);
             
             % substitue front and end part with zeros
             % cf: this values shoud have been zeros if marker is collected
             % properly
             mark_median_cell_each_frontend_zero = cellfun(@(x)...
-                x-[x(1:n_seg2margin,:);zeros(n_seg+2*n_seg2margin-2*n_seg2margin,3);...
-                x(n_seg+2*n_seg2margin-n_seg2margin+1:n_seg+2*n_seg2margin,:)],...
+                x-[x(1:n_seg2margin_front,:);zeros(n_seg,3);...
+                x(n_seg_total-n_seg2margin_end+1:...
+                n_seg_total,:)],...
                 mark_median_cell_each_front,'UniformOutput',false);
             
             % to plot, change cell to mat
@@ -170,7 +176,7 @@ for i_sub = 1 : n_sub
             % properly
             % I should first get min and max for non-expression to get
             % ranges of non-exprression
-            minmax_mark_medain = minmax(mark_median_proc(1:n_seg+2*n_seg2margin,:)');
+            minmax_mark_medain = minmax(mark_median_proc(1:n_seg+2*n_seg2margin_front,:)');
             
             for i_marktype = 1 : n_mark_type
                 % get idices of values who are in range of
@@ -192,24 +198,26 @@ for i_sub = 1 : n_sub
             % save
             save(fullfile(path_tmp,name_file),'mark_median_proc');
             
+            if(id_plot)
             % plot
-%             figure;title('substitue signal part who ranged with non-expression with zeros')
-%             plot(mark_median_proc)
-%             text(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-%                 min(min(mark_median_proc))*ones(n_FE,1),...
-%                 name_FE(idx_FE_2_change))
-%             hold on;
-%             stem(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-%                 min(min(mark_median_proc))*ones(n_FE,1),'k')
-%             hold on
-%             stem(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-%                 max(max(mark_median_proc))*ones(n_FE,1),'k')
+            figure;title('substitue signal part who ranged with non-expression with zeros')
+            plot(mark_median_proc)
+            text(1:n_seg_total:n_FE*(n_seg_total),...
+                min(min(mark_median_proc))*ones(n_FE,1),...
+                name_FE(idx_FE_2_change))
+            hold on;
+            stem(1:n_seg_total:n_FE*(n_seg_total),...
+                min(min(mark_median_proc))*ones(n_FE,1),'k')
+            hold on
+            stem(1:n_seg_total:n_FE*(n_seg_total),...
+                max(max(mark_median_proc))*ones(n_FE,1),'k')
+            end
             %-------------------------------------------------------------% 
             
             
             % restore signal wih baseline of non-expression
             mark_median_cell_return = mat2cell(mark_median_proc,...
-                n_seg+n_seg2margin*2*ones(n_FE,1),n_mark_type);
+                n_seg_total*ones(n_FE,1),n_mark_type);
             mark_restored = cell(size(mark_median_cell_return));
             for i = 1 : numel(mark_median_cell_return)
                 % 처음 무표정 값의 baseline으로 맞추어줌
@@ -227,17 +235,19 @@ for i_sub = 1 : n_sub
             save(fullfile(path_tmp,name_file),'mark_restored_mat');
             
             % plot
-%             figure;title('restored signal who ranged with non-expression with zeros and baselin_with_non-exp')
-%             plot(mark_reconst_mat)
-%             text(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-%                 min(min(mark_reconst_mat))*ones(n_FE,1),...
-%                 name_FE(idx_FE_2_change))
-%             hold on;
-%             stem(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-%                 min(min(mark_reconst_mat))*ones(n_FE,1),'k')
-%             hold on
-%             stem(1:n_seg+n_seg2margin*2:n_FE*(n_seg+n_seg2margin*2),...
-%                 max(max(mark_reconst_mat))*ones(n_FE,1),'k')
+            if(id_plot)
+            figure;title('restored signal who ranged with non-expression with zeros and baselin_with_non-exp')
+            plot(mark_restored_mat)
+            text(1:n_seg_total:n_FE*(n_seg_total),...
+                min(min(mark_restored_mat))*ones(n_FE,1),...
+                name_FE(idx_FE_2_change))
+            hold on;
+            stem(1:n_seg_total:n_FE*(n_seg_total),...
+                min(min(mark_restored_mat))*ones(n_FE,1),'k')
+            hold on
+            stem(1:n_seg_total:n_FE*(n_seg_total),...
+                max(max(mark_restored_mat))*ones(n_FE,1),'k')
+            end
             %-------------------------------------------------------------% 
             disp([i_sub,i_trl]);
         end
