@@ -49,7 +49,7 @@ n_seg2use = period_FE_exp/period_sampling;
 
 %% get marker set
 for i_emg_pair = 1 : n_emg_pair
-for i_mark = 10 : n_marker
+for i_mark = 1 : n_marker
 %     get path of marker set
     path_markerset = fullfile(path_DB_processed,...
         sprintf('z_norm_mark_%d',i_mark),'marker_set');
