@@ -13,7 +13,7 @@ clc; clear; close all;
 
 %-----------------------Code anlaysis parmaters----------------------------
 % name of process DB to analyze in this code
-name_folder = 'windows_ds_10Hz_ovsize_50_delay_0';
+name_folder = 'DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_408_wininc_204_delay_0';
 
 % decide feature to extract
 str_features2use = {'RMS'};
@@ -29,9 +29,10 @@ addpath(genpath(fullfile(fileparts(fileparts(fileparts(cd))),'_toolbox')));
 % add functions
 addpath(genpath(fullfile(cd,'functions')));
 % path for processed data
-parentdir=fileparts(pwd); % parent path which has DB files
+path_parent=fileparts(pwd); % parent path which has DB files
 % get path
-path_DB_process = fullfile(parentdir,'DB','DB_processed2',name_folder);
+path_DB_process = fullfile(path_parent,'DB','DB_processed2');
+path_folder_anlaysis = fullfile(path_DB_process,name_folder);
 
 %-----------------------experiment information-----------------------------
 % list of paris of instruction and trigger
@@ -39,7 +40,10 @@ name_Trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",..
     1,4;"눈 세게 감기",1,5;"두려움",1,6;"행복",1,7;"키스",2,1;"무표정",2,2;...
     "슬픔",2,3;"놀람",2,4};
 name_FE = name_Trg(:,1);
-%--------------------------------------------------------------------------
+
+% load indices of information that not be analyzed because of trriger
+% problem
+load(fullfile(path_folder_anlaysis,'idx_sub_n_trial_not_be_used'))
 
 % changed expreesion order like
 %["무표정";"화남";"어금니깨물기";"비웃음(왼쪽)";"비웃음(오른쪽)";
@@ -47,9 +51,10 @@ name_FE = name_Trg(:,1);
 idx_FE_2_change  = [9,1:8,10:11];
 
 % number of experimnet information
-n_sub = 5;
+% read file path of data from raw DB
+[name_sub,path_sub] = read_names_of_file_in_folder(fullfile(path_parent,'DB','DB_raw2'));
+n_sub = length(name_sub);
 n_trl = 20;
-n_mark = 28;
 n_trg = 26;
 n_emg_pair = 3;
 n_ch_emg = 4;
@@ -59,20 +64,21 @@ period_FE_exp = 3;
 period_sampling = 0.1;
 n_FE = length(name_FE);
 n_seg = period_FE_exp/period_sampling;
-period_margin_FE_front =1; % 표정 인스트럭션 전 1초
+period_margin_FE_front =1; % 표정 인스트럭션 전
 n_seg2margin_front = period_margin_FE_front/period_sampling;
 
-period_margin_FE_end = 0; % 표정 인스트럭션 전 2초
+period_margin_FE_end = 0; % 표정 인스트럭션 후
 n_seg2margin_end= period_margin_FE_end/period_sampling;
 
 
-idx_marker_type = 1 : 3;% 1:X,2:Y,3:Z
+idx_marker_type = 1 : 3; % 1:X,2:Y,3:Z
 n_mark_type = length(idx_marker_type); % 1:X,2:Y,3:Z
 
 name_feat_list = {'RMS','WL','CC','SampEN'};
 id_feat2use = contains(name_feat_list,str_features2use);
 n_feat = sum([id_feat2use(1:3)*n_ch_emg,...
     id_feat2use(n_ch_emg)*n_ch_emg*n_ch_emg]);
+%--------------------------------------------------------------------------
 
 % %% prepare save folder
 % Name_folder = sprintf('N_word_%d_N_line_%d_size_line_spac_%d',...
@@ -82,12 +88,30 @@ n_feat = sum([id_feat2use(1:3)*n_ch_emg,...
 % Get EMG features from windows
 for i_sub = 1 : n_sub
     for i_trl = 1 : n_trl
+        % skip subject and trial due to trigger problem
+        for i_not_used = 1 : size(idx_sub_n_trial_not_be_used,1)
+            idx_2_compare = [i_sub,i_trl];
+            idx_2_compare(idx_sub_n_trial_not_be_used(i_not_used,:)==-1) = -1;
+            if isequal(idx_sub_n_trial_not_be_used(i_not_used,:),idx_2_compare)
+                id_do_skip = 1;
+            else
+                id_do_skip = 0;
+            end
+            if exist('id_do_skip','var')&& id_do_skip==1
+                break;
+            end
+        end
+        if id_do_skip
+            clear id_do_skip;
+            continue;
+        end
+        
         for i_emg_pair = 1 : n_emg_pair
             % folder name 4 saving 
             name_emgpair = sprintf('emg_pair_%d',i_emg_pair);
             
             % set path
-            path_emg_pair = fullfile(path_DB_process,name_emgpair);
+            path_emg_pair = fullfile(path_folder_anlaysis,name_emgpair);
             marker_set = cell(n_sub,n_trl);
             
             % read marker
@@ -130,7 +154,7 @@ for i_sub = 1 : n_sub
             % set saving folder;
             name_folder = ['feat_',name_emgpair,'_',cat(2,str_features2use{:})];
             
-            path_tmp = make_path_n_retrun_the_path(path_DB_process,name_folder);
+            path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
 
             % save
@@ -162,7 +186,7 @@ for i_sub = 1 : n_sub
             % set saving folder;
             name_folder = ['feat_seg_',name_emgpair,'_',cat(2,str_features2use{:})];
 %             name_folder = ['median_v_proc','_',name_emgpair];
-            path_tmp = make_path_n_retrun_the_path(path_DB_process,name_folder);
+            path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
             
             % save

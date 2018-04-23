@@ -14,7 +14,7 @@ clc; clear; close all;
 
 %-----------------------Code anlaysis parmaters----------------------------
 % name of process DB to analyze in this code
-name_folder = 'windows_ds_10Hz_ovsize_50_delay_0';
+name_folder = 'DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_408_wininc_204_delay_0';
 
 id_plot = 0;
 % determine normalization type
@@ -28,9 +28,10 @@ addpath(genpath(fullfile(fileparts(fileparts(fileparts(cd))),'_toolbox')));
 % add functions
 addpath(genpath(fullfile(cd,'functions')));
 % path for processed data
-parentdir=fileparts(pwd); % parent path which has DB files
+path_parent=fileparts(pwd); % parent path which has DB files
 % get path
-path_DB_process = fullfile(parentdir,'DB','DB_processed2',name_folder);
+path_DB_process = fullfile(path_parent,'DB','DB_processed2');
+path_folder_anlaysis = fullfile(path_DB_process,name_folder);
 
 %-----------------------experiment information-----------------------------
 % list of markers
@@ -47,6 +48,7 @@ name_Trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",..
     1,4;"눈 세게 감기",1,5;"두려움",1,6;"행복",1,7;"키스",2,1;"무표정",2,2;...
     "슬픔",2,3;"놀람",2,4};
 name_FE = name_Trg(:,1);
+id_plot = 1;
 %--------------------------------------------------------------------------
 
 % changed expreesion order like
@@ -55,11 +57,16 @@ name_FE = name_Trg(:,1);
 idx_FE_2_change  = [9,1:8,10:11];
 
 % number of experimnet information
-n_sub = 5;
+[name_sub,path_sub] = read_names_of_file_in_folder(fullfile(path_parent,'DB','DB_raw2'));
+n_sub = length(name_sub);
 n_trl = 20;
 n_mark = 28;
 n_trg = 26;
 n_emgpair = 3;
+
+% load indices of information that not be analyzed because of trriger
+% problem
+load(fullfile(path_folder_anlaysis,'idx_sub_n_trial_not_be_used'))
 
 % period of facial expression
 period_FE_exp = 3;
@@ -83,6 +90,26 @@ n_mark_type = length(idx_marker_type); % 1:X,2:Y,3:Z
 % Get median value from marker
 for i_sub = 1 : n_sub
     for i_trl = 1 : n_trl
+        
+        % skip subject and trial due to trigger problem
+        for i_not_used = 1 : size(idx_sub_n_trial_not_be_used,1)
+        idx_2_compare = [i_sub,i_trl];
+        idx_2_compare(idx_sub_n_trial_not_be_used(i_not_used,:)==-1) = -1;
+            
+        if isequal(idx_sub_n_trial_not_be_used(i_not_used,:),idx_2_compare)
+            id_do_skip = 1;
+        else
+            id_do_skip = 0;
+        end
+        if exist('id_do_skip','var')&& id_do_skip==1
+            break;
+        end
+        end
+        if id_do_skip
+            clear id_do_skip;
+            continue;
+        end
+        
         for i_mark = 1 : n_mark
             % display of marker
 %             disp(name_mark(i_mark));
@@ -91,7 +118,7 @@ for i_sub = 1 : n_sub
             name_mark_folder = sprintf('mark_%d',i_mark);
             
             % set path
-            path_mark = fullfile(path_DB_process,name_mark_folder);
+            path_mark = fullfile(path_folder_anlaysis,name_mark_folder);
             marker_set = cell(n_sub,n_trl);
             
             % read marker
@@ -114,7 +141,7 @@ for i_sub = 1 : n_sub
             %--------------------save median_v----------------------------%
             % set saving folder;
             name_folder = ['median_v','_',name_mark_folder];
-            path_tmp = make_path_n_retrun_the_path(path_DB_process,name_folder);
+            path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
             
             % save
@@ -130,7 +157,8 @@ for i_sub = 1 : n_sub
             mark_median_cell = cell(n_FE,1);
             mark_median_diff_cell= cell(n_FE,1);
             for i_FE = 1 : n_FE
-                mark_median_cell{idx_seq_FE(i_FE)} = mark_median(trg_w(i_FE)-n_seg2margin_front:...
+                mark_median_cell{idx_seq_FE(i_FE)} = ...
+                    mark_median(trg_w(i_FE)-n_seg2margin_front:...
                     trg_w(i_FE)+n_seg-1+n_seg2margin_end,:);
 
             end
@@ -192,7 +220,7 @@ for i_sub = 1 : n_sub
             %--------------------save median_v----------------------------%
             % set saving folder;
             name_folder = ['median_v_proc','_',name_mark_folder];
-            path_tmp = make_path_n_retrun_the_path(path_DB_process,name_folder);
+            path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
             
             % save
@@ -228,7 +256,7 @@ for i_sub = 1 : n_sub
             %-----------save resored singal with fixed baseline-----------%
             % set saving folder;
             name_folder = ['median_v_restored','_',name_mark_folder];
-            path_tmp = make_path_n_retrun_the_path(path_DB_process,name_folder);
+            path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
             
             % save

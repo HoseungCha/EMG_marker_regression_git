@@ -15,7 +15,7 @@ clc; clear all; close all;
 
 %-----------------------Code anlaysis parmaters----------------------------
 % name of process DB to analyze in this code
-name_folder = 'windows_ds_10Hz_ovsize_50_delay_0';
+name_folder = 'DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_408_wininc_204_delay_0';
 name_folder_emg = 'feat_seg_emg_pair';
 name_folder_marker = 'median_v_proc';
 id_plot = 1;
@@ -31,32 +31,56 @@ addpath(genpath(fullfile(cd,'functions')));
 path_parent=fileparts(pwd); % parent path which has DB files
 
 % get path
-path_DB_process = fullfile(path_parent,'DB','DB_processed2',name_folder);
-
+path_DB_process = fullfile(path_parent,'DB','DB_processed2');
+path_folder_anlaysis = fullfile(path_DB_process,name_folder);
 %--------------------experiment information-------------------------------%
-idx_sub2use = [1,2,3,4,5];
+% number of experimnet information
+
+% read file path of data from raw DB
+[name_sub,path_sub] = read_names_of_file_in_folder(fullfile(path_parent,'DB','DB_raw2'));
+n_sub = length(name_sub);
+idx_sub2use = 1:n_sub;
 n_emg_pair = 3;
 n_mark = 28;
 n_FE = 11;
 idx_trl2use = 1:20;
 % idx_trl2use(13) = [];
 n_trl2use = length(idx_trl2use);
-% read file path of data from raw DB
-[name_sub,~] = read_names_of_file_in_folder(fullfile(path_parent,'DB','DB_raw2'));
-n_sub = length(name_sub);
 n_trl= 20;
+basline_text = 50;
 
+% load indices of information that not be analyzed because of trriger
+% problem
+load(fullfile(path_folder_anlaysis,'idx_sub_n_trial_not_be_used'))
+
+% get rid of the index of the subject's whole DB which need to be reviewed
+% -1 of trial in idx_sub_n_trial_not_be_used means the whole trials of that
+% subejct has to be reviewed
+idx_sub_to_be_reviewed = find(idx_sub_n_trial_not_be_used(:,2)==-1);
+idx_sub2use(idx_sub_n_trial_not_be_used(idx_sub_to_be_reviewed,1)) = [];
+n_sub2use = length(idx_sub2use);
+idx_sub_n_trial_not_be_used(idx_sub_to_be_reviewed,:) = [];
+    
 for i_emg_pair = 1
 % for i_emg_pair = 1   
     % folder name to load 
     name_folder4file = sprintf('%s_%d_RMS',name_folder_emg,i_emg_pair);
     
     % set path
-    path = fullfile(path_DB_process,name_folder4file);
+    path = fullfile(path_folder_anlaysis,name_folder4file);
     
     % read file names
     [name_file,path_file] = read_names_of_file_in_folder(...
         path,'*.mat');
+    
+    % save fake DB
+    load(path_file{1});
+    emg_segment_proc = NaN(size(emg_segment_proc));
+    for i_not_be_used = 1 : size(idx_sub_n_trial_not_be_used,1)
+    save(fullfile(path,sprintf('sub_%03d_trl_%03d',...
+        idx_sub_n_trial_not_be_used(i_not_be_used,1),...
+        idx_sub_n_trial_not_be_used(i_not_be_used,2))),'emg_segment_proc')
+    end
     
     % reshape of file path to fit with trial and subject size
     path_file = reshape(path_file,n_trl,[]); % n_trl X n_sub
@@ -65,7 +89,9 @@ for i_emg_pair = 1
     path_file = path_file(idx_trl2use,idx_sub2use);
     
     %load whole files using cellfun
-    tmp = permute(struct2cell(cellfun(@load,path_file)),[2 3 1]);
+    tmp = cellfun(@load,path_file,'UniformOutput',false);
+    tmp = cellfun(@(x) struct2cell(x),tmp,'UniformOutput',false);
+    tmp = cellfun(@(x) x{1},tmp,'UniformOutput',false);
     
     %get number of features
     [n_trl, n_sub] = size(tmp);
@@ -84,7 +110,7 @@ for i_emg_pair = 1
     ylim([0 400])
     hold on
     for i = 1 : n_trl
-        text(50+n_session*(i-1),max(max(emg_raw)),num2str(i));
+        text(basline_text+n_session*(i-1),max(max(emg_raw)),num2str(i));
     end
     stem(1:n_session:n_trl*(n_session),...
         min(min(emg_raw))*ones(n_trl,1),'r','LineWidth',2)
@@ -93,7 +119,7 @@ for i_emg_pair = 1
     hold off
     title(strrep(name_sub{i_sub},'_',' '))
     c = getframe(gcf);
-    imwrite(c.cdata,fullfile(path_DB_process,sprintf('%s_%s.png',...
+    imwrite(c.cdata,fullfile(path_folder_anlaysis,sprintf('%s_%s.png',...
         name_folder4file,name_sub{i_sub})));
     close(gcf);
     end
@@ -110,7 +136,7 @@ for i_emg_pair = 1
 %     plot(emg_z)
 %     hold on
 %     for i = 1 : n_trl
-%         text(10+n_session*(i-1),max(max(emg_z)),num2str(i));
+%         text(basline_text+n_session*(i-1),max(max(emg_z)),num2str(i));
 %     end
 %     stem(1:n_session:n_trl*(n_session),...
 %         min(min(emg_z))*ones(n_trl,1),'k')
@@ -133,7 +159,7 @@ for i_emg_pair = 1
 %     plot(emg_raw(:,9:12))
 %     hold on
 %     for i = 1 : n_trl
-%         text(10+n_session*(i-1),max(max(emg_raw(:,1:4))),num2str(i));
+%         text(basline_text+n_session*(i-1),max(max(emg_raw(:,1:4))),num2str(i));
 %     end
 %     stem(1:n_session:n_trl*(n_session),...
 %         min(min(emg_raw(:,1:4)))*ones(n_trl,1),'k')
@@ -152,10 +178,19 @@ for i_mark = 10
     name_folder4file = sprintf('%s_mark_%d',name_folder_marker,i_mark);
     
     % set path
-    path = fullfile(path_DB_process,name_folder4file);
+    path = fullfile(path_folder_anlaysis,name_folder4file);
     
     % read file names
     [name_file,path_file] = read_names_of_file_in_folder(path,'*.mat');
+    
+    % save fake DB
+    load(path_file{1});
+    mark_median_proc = NaN(size(mark_median_proc));
+    for i_not_be_used = 1 : size(idx_sub_n_trial_not_be_used,1)
+    save(fullfile(path,sprintf('sub_%03d_trl_%03d',...
+        idx_sub_n_trial_not_be_used(i_not_be_used,1),...
+        idx_sub_n_trial_not_be_used(i_not_be_used,2))),'mark_median_proc')
+    end
     
     % reshape of file path to fit with trial and subject size
     path_file = reshape(path_file,n_trl,[]); % n_trl X n_sub
@@ -164,7 +199,10 @@ for i_mark = 10
     path_file = path_file(idx_trl2use,idx_sub2use);
     
     %load whole files using cellfun
-    tmp = permute(struct2cell(cellfun(@load, path_file)),[2 3 1]);
+    tmp = cellfun(@load,path_file,'UniformOutput',false);
+    tmp = cellfun(@(x) struct2cell(x),tmp,'UniformOutput',false);
+    tmp = cellfun(@(x) x{1},tmp,'UniformOutput',false);
+    
     
     %get number of features
     n_mark_type = size(tmp{1},2);
@@ -181,7 +219,7 @@ for i_mark = 10
     ylim([-10 10])
     hold on
     for i = 1 : n_trl
-        text(50+n_session*(i-1),max(max(mark_raw)),num2str(i));
+        text(basline_text+n_session*(i-1),max(max(mark_raw)),num2str(i));
     end
     stem(1:n_session:n_trl*(n_session),...
         min(min(mark_raw))*ones(n_trl,1),'r','LineWidth',2)
@@ -190,7 +228,7 @@ for i_mark = 10
     hold off
     title(strrep(name_sub{i_sub},'_',' '))
     c = getframe(gcf);
-    imwrite(c.cdata,fullfile(path_DB_process,sprintf('%s_%s.png',...
+    imwrite(c.cdata,fullfile(path_folder_anlaysis,sprintf('%s_%s.png',...
         name_folder4file,name_sub{i_sub})));
     close(gcf);
     end
@@ -206,7 +244,7 @@ for i_mark = 10
 %     plot(mark_raw(:,4:6))
 %     hold on
 %     for i = 1 : n_trl
-%         text(10+n_session*(i-1),max(max(mark_raw(:,4:6))),num2str(i));
+%         text(basline_text+n_session*(i-1),max(max(mark_raw(:,4:6))),num2str(i));
 %     end
 %     stem(1:n_session:n_trl*(n_session),...
 %         min(min(mark_raw(:,4:6)))*ones(n_trl,1),'k')
