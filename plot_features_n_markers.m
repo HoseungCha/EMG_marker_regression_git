@@ -64,8 +64,8 @@ load(fullfile(path_DB_analy,'idx_sub_n_trial_not_be_used'))
 n_sub2use = length(idx_sub2use);
 % idx_sub_n_trial_not_be_used(idx_sub_to_be_reviewed,:) = [];
     
-for i_emg_pair = 1 : n_emg_pair
-% for i_emg_pair = 1
+% for i_emg_pair = 1 : n_emg_pair
+for i_emg_pair = 1
     % folder name to load 
     name_folder4file = sprintf('%s_%d_RMS',name_folder_emg,i_emg_pair);
     

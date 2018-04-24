@@ -250,14 +250,15 @@ for i_mark = 10
         tmp = cellfun(@(x) con2seq(x'),tmp,'UniformOutput', false);
         tr_target_seq = catsamples(tmp{:});
         
-        
-%         % do normalization to EMG <max(abs(marker_tr))/max(emg_tr)>
-%         tr_target_max = mean(cell2mat(cellfun(@(x) max(abs(x)),...
-%             tr_target,'UniformOutput',false)));
-%         tr_input_max = mean(cell2mat(cellfun(@(x) max(abs(x)),...
-%             tr_input,'UniformOutput',false)));
-       
         % input (EMG)
+        % do normalization to EMG <max(abs(marker_tr))/max(emg_tr)>
+        tr_target_max = mean(cell2mat(cellfun(@(x) max(abs(x)),...
+            tr_target,'UniformOutput',false)));
+        tr_target_max = mean(cell2mat(cellfun(@(x) max(abs(x)),...
+            tr_target,'UniformOutput',false)));
+        
+        
+        
         tmp = cellfun(@(x) mat2cell(x,repmat(n_samp_fe,n_fe,1),n_emg_feat),...
             tr_input,'UniformOutput',false);
         tmp = cat(1,tmp{:});
