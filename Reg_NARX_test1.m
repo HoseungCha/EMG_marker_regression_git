@@ -30,7 +30,7 @@ name_emg_process = 'feat_seg_emg_pair';
 name_emg_feat = 'RMS';
 
 % idx of subject and trial you want to anlayize
-idx_sub = 1 : 15; % idices of subjects
+idx_sub = 2; % idices of subjects
 idx_trl = 1 : 20; % idices of trials
 idx_trl(2:3) = [] % 2,3 tiral »©°í ºÐ¼®
 
@@ -52,9 +52,9 @@ id_using_saved_network = 0;
 id_save_network = 1;
 
 % decide paramter of NARX network
-idx_num_of_hidden_layer = 40:20:100;
-idx_num_of_input_delay = 2:10;
-idx_num_of_ouput_delay = 1:2:10;
+idx_num_of_hidden_layer = 30;
+idx_num_of_input_delay = 5;
+idx_num_of_ouput_delay = 5;
 %-------------------------------------------------------------------------%
 
 %-------------set paths in compliance with Cha's code structure-----------%
@@ -114,7 +114,7 @@ output = cell(n_mark,1);
 % for i_emg_pair = 1 : n_emg_pair
 for i_emg_pair = 1    
 % for i_mark = 1 : N_mark
-for i_mark = 10
+for i_mark = 12
     count_net = 0;
     %display curr marker
     disp(name_markers(i_mark)); 
@@ -252,10 +252,13 @@ for i_mark = 10
         
         
 %         % do normalization to EMG <max(abs(marker_tr))/max(emg_tr)>
-%         tr_target_max = mean(cell2mat(cellfun(@(x) max(abs(x)),...
-%             tr_target,'UniformOutput',false)));
-%         tr_input_max = mean(cell2mat(cellfun(@(x) max(abs(x)),...
-%             tr_input,'UniformOutput',false)));
+        tr_target_max = mean(cell2mat(cellfun(@(x) max(abs(x)),...
+            tr_target,'UniformOutput',false)));
+        
+        tr_input_max = mean(cell2mat(cellfun(@(x) max(abs(x)),...
+            tr_input,'UniformOutput',false)));
+        
+        
        
         % input (EMG)
         tmp = cellfun(@(x) mat2cell(x,repmat(n_samp_fe,n_fe,1),n_emg_feat),...
