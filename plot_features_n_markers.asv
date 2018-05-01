@@ -69,8 +69,8 @@ n_mark_type = 3;
 idx_marker2use = [1,3,9,10,11,14,15,16,19,20,21,25,25,26];
 
 for i_emg_pair = 1
-for i_mark = idx_marker2use(1:7)
-    fprintf('i_mark: %d',i_mark);
+for i_mark = idx_marker2use
+    
     % read file names
     tmp_mark = cell(n_trl,n_sub);
     tmp_emg = cell(n_trl,n_sub);
@@ -141,7 +141,10 @@ for i_mark = idx_marker2use(1:7)
         end
         % make it more tight
         tightfig;
-
+        close;
+        
+        
+        
         %-----------------------save fig----------------------------------%
         savefig(gcf,fullfile(path_DB_analy,name_save));
         %-----------------------------------------------------------------%

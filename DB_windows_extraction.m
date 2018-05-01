@@ -116,8 +116,25 @@ for i_trl = 1 : n_trl
             emg_win{i} = NaN(size(emg_win{1}));
             mark_win{i} = NaN(size(mark_win{1}));
         end
+        
+        for i_comb = 1 : n_emg_pair
+        % save
+        name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl); % file name to save
+        path_temp = make_path_n_retrun_the_path(path_DB_process,...
+            sprintf('emg_pair_%d',i_comb)); % get folder for saving
         save(fullfile(path_temp,name_file),'emg_win','trg_w','idx_seq_FE');
+        end
+        
+        for i_marker = 1 : n_marker
+        % save
+        path_temp = make_path_n_retrun_the_path(path_DB_process,...
+            sprintf('mark_%d',i_marker)); % set folder name
+        name_file = sprintf('sub_%03d_trl_%03d_raw',...
+            i_sub,i_trl); % name for saving
         save(fullfile(path_temp,name_file),'mark_win','trg_w','idx_seq_FE');
+        end 
+        continue;
+    else
         continue;
     end
     

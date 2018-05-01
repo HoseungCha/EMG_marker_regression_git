@@ -86,7 +86,7 @@ idx_marker_type = 1 : n_mark_type;% 1:X,2:Y,3:Z
 for i_sub = 1 : n_sub
     for i_trl = 1 : n_trl
         disp([i_sub,i_trl]);
-        for i_mark = 1 : n_mark
+        for i_mark = 10 : n_mark
             try
             % display of marker
 %             disp(name_mark(i_mark));
@@ -214,21 +214,20 @@ for i_sub = 1 : n_sub
             stem(1:n_seg_total:n_FE*(n_seg_total),...
                 max(max(mark_median_proc))*ones(n_FE,1),'k')
             % save plot
-            savefig(gcf,fullfile(path_tmp,name_file));
-            close;
+            savefig(gcf,fullfile(path_tmp,name_file),'mark_median_proc');
             end
             %-------------------------------------------------------------% 
             
             
             % restore signal wih baseline of neutral exp
-%             mark_median_cell_return = mat2cell(mark_median_proc,...
-%                 n_seg_total*ones(n_FE,1),n_mark_type);
-%             mark_restored = cell(size(mark_median_cell_return));
-%             for i = 1 : numel(mark_median_cell_return)
-%                 % 처음 무표정 값의 baseline으로 맞추어줌
-%                 mark_restored{i} = mark_median_cell_return{i}+mark_median_each_front{1};
-%             end
-%             mark_restored_mat = cell2mat(mark_restored);
+            mark_median_cell_return = mat2cell(mark_median_proc,...
+                n_seg_total*ones(n_FE,1),n_mark_type);
+            mark_restored = cell(size(mark_median_cell_return));
+            for i = 1 : numel(mark_median_cell_return)
+                % 처음 무표정 값의 baseline으로 맞추어줌
+                mark_restored{i} = mark_median_cell_return{i}+mark_median_each_front{1};
+            end
+            mark_restored_mat = cell2mat(mark_restored);
             
             %-----------save restored singal with fixed baseline-----------%
             % set saving folder;

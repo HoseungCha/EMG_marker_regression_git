@@ -41,7 +41,10 @@ name_Trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",..
     "슬픔",2,3;"놀람",2,4};
 name_FE = name_Trg(:,1);
 
-
+% changed expreesion order like
+%["무표정";"화남";"어금니깨물기";"비웃음(왼쪽)";"비웃음(오른쪽)";
+%"눈 세게 감기";"두려움";"행복";"키스";"슬픔";"놀람"]
+idx_FE_2_change  = [9,1:8,10:11];
 
 % number of experimnet information
 % read file path of data from raw DB
@@ -62,6 +65,10 @@ n_seg2margin_front = period_margin_FE_front/period_sampling;
 
 period_margin_FE_end = 0; % 표정 인스트럭션 후
 n_seg2margin_end= period_margin_FE_end/period_sampling;
+
+
+idx_marker_type = 1 : 3; % 1:X,2:Y,3:Z
+n_mark_type = length(idx_marker_type); % 1:X,2:Y,3:Z
 
 name_feat_list = {'RMS','WL','CC','SampEN'};
 id_feat2use = contains(name_feat_list,str_features2use);
@@ -85,6 +92,7 @@ for i_sub = 1 : n_sub
             
             % set path
             path_emg_pair = fullfile(path_folder_anlaysis,name_emg_pair);
+            marker_set = cell(n_sub,n_trl);
             
             % read emg
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
@@ -144,10 +152,14 @@ for i_sub = 1 : n_sub
                 emg_segment{idx_seq_FE(i_FE)} = emg_feat(trg_w(i_FE)-n_seg2margin_front:...
                     trg_w(i_FE)+n_seg-1+n_seg2margin_end,:);
             end
+%             % change it in the order like
+%             %["무표정";"화남";"어금니깨물기";"비웃음(왼쪽)";"비웃음(오른쪽)";
+%             %"눈 세게 감기";"두려움";"행복";"키스";"슬픔";"놀람"]
+%             emg_segment = emg_segment(idx_FE_2_change);
             
             % normalization of median data
             % get median mark values of non-expression
-            emg_feat_nonexp = emg_segment{9};
+            emg_feat_nonexp = emg_segment{1};
             
             % to plot, change cell to mat
             emg_segment_proc = cell2mat(emg_segment);
