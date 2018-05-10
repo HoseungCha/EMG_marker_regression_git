@@ -21,7 +21,7 @@ name_folder_in_DB_prc = 'DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_40
 name_folder_emg = 'feat_seg_emg_pair';
 name_folder_marker = 'median_v_proc';
 id_plot = 1;
-name_norm_method ='do_all_emotion';
+name_norm_method ='do_each'; %do_each, do_all_emotion
 %-------------------------------------------------------------------------%
 
 % get toolbox
@@ -57,11 +57,11 @@ name_fe = {'angry','clench','contm_left','contm_right',...
 % name_FE = name_trl(:,1);
 
 % idices of channels of emg and marekr of each Quadrant
-idx_ch_emg.q1 = 2; % right top
-idx_ch_mark.q1 =[24, 25];
+idx_ch_emg.q1 = 3; % right top
+idx_ch_mark.q1 =[14, 15];
 
-idx_ch_emg.q2 = 3;
-idx_ch_mark.q2 = [14,15];
+idx_ch_emg.q2 = 2;
+idx_ch_mark.q2 = [24,25];
 
 idx_ch_emg.q3 = 1;
 idx_ch_mark.q3 = [1,3,19,20,21,26];
@@ -108,6 +108,7 @@ n_trl2use = length(idx_trl2use);
 n_trl= 20;
 basline_text = 50;
 n_mark_type = 3;
+n_emg_ch = 4;
 idx_marker2use = [1,3,9,10,11,14,15,16,19,20,21,25,25,26];
 
 idx_marker_cell = struct2cell(idx_marker);
@@ -180,29 +181,35 @@ switch name_norm_method
         end
         end
 end
+%-------------------------------------------------------------------------%
 
-%--------------------------
+idx_fe2use = find(contains(name_fe,names_fe2use)==1);
+
 for i_fe = 1 : length(idx_marker_cell)
     % display of facial expression
     disp(names_fe2use{i_fe});
     names_face_unit = fieldnames(idx_marker_cell{i_fe});
     n_face_unit = length(names_face_unit);
     
-    tmp = struct2cell(idx_marker_cell{i_fe});
+    %get original index of fe
+    idx_fe_org = find(contains(name_fe,names_fe2use{i_fe}));
+    
+    idx_fu_type_cell = struct2cell(idx_marker_cell{i_fe});
     for i_face_unit = 1 : n_face_unit
         % display of facial unit
         disp(names_face_unit{i_face_unit});
         
         % get marker number which is needed
-        idx_mark = tmp{i_face_unit};
+        idx_mark = idx_fu_type_cell{i_face_unit};
 
         for i_mark = idx_mark
+%         for i_mark = 10
             disp(name_mark{i_mark});
-            tmp_mark_cell = tmp_mark(:,:,i_mark,i_fe);
+            tmp_mark_cell = tmp_mark(:,:,i_mark,idx_fe_org);
 %             tmp_mark_cell = cellfun(@minmax_norm_abs,tmp_mark_cell,...
 %                 'UniformOutput',false);
 
-            tmp_emg_cell = tmp_emg(:,:,i_fe);
+            tmp_emg_cell = tmp_emg(:,:,idx_fe_org);
 %             tmp_emg_cell = cellfun(@minmax_norm,tmp_emg_cell,...
 %                 'UniformOutput',false);
 
@@ -213,7 +220,26 @@ for i_fe = 1 : length(idx_marker_cell)
                     idx_use_q = [idx_use_q,i_q];
                 end
             end
-            idx_fe_org = find(contains(name_fe,names_fe2use{i_fe}));
+            
+            
+            
+            %------------------get median  values-------------------------%
+            tmp_mark_rep = zeros(n_seg2use,n_mark_type);
+            for i_mark_type = 1 : n_mark_type
+                tmp = cellfun(@(x) x(:,i_mark_type), tmp_mark_cell,...
+                    'UniformOutput',false);
+                tmp = cat(2,tmp{:});
+                tmp_mark_rep(:,i_mark_type) = nanmedian(tmp,2);
+            end
+            
+            tmp_emg_rep = zeros(n_seg2use,n_emg_ch);
+            for i_emg_ch = 1 : n_emg_ch
+                tmp = cellfun(@(x) x(:,i_emg_ch), tmp_emg_cell,...
+                        'UniformOutput',false);
+                tmp = cat(2,tmp{:});
+                tmp_emg_rep(:,i_emg_ch) = nanmedian(tmp,2);
+            end
+            %-------------------------------------------------------------%
 
             name_save = sprintf('Norm_type-%s 감정-%d-%s 부위-%s 마커-%d-%s',...
                 name_norm_method,...
@@ -221,17 +247,33 @@ for i_fe = 1 : length(idx_marker_cell)
                 names_face_unit{i_face_unit},...
                 i_mark,name_mark{i_mark});
             disp(name_save);  %#ok<DSPS>
-            %--------------------------plot---------------------------%
+            %--------------------------plot---------------------------%            
+            figure('Name',name_save,'NumberTitle','off');
+            subplot(2,1,1);
+            title('marker median 값')
+            plot(tmp_mark_rep);
+            ylim([-1 1])
+            subplot(2,1,2);
+            title('emg median 값')
+            plot(tmp_emg_rep);
+            ylim([-1 1])
+            % make it more tight
+            tightfig;
+            %-----------------------save fig--------------------------%
+            savefig(gcf,fullfile(path_DB_analy,[name_save,'_template']));
+            %---------------------------------------------------------%
+            close;
             figure('Name',name_save,'NumberTitle','off');
             c = 0;
             for i_sub = 1 : n_sub
                 for i_trl = 1 : n_trl
                     c = c + 1;
-                    subplot(n_sub,n_trl,c)
+                    subplot(n_trl,n_sub,c)
                     plot(tmp_mark_cell{i_sub,i_trl})
                     hold on;
                     plot(tmp_emg_cell{i_sub,i_trl}...
                         (:,idx_ch_emg(idx_use_q)),'k');
+                    ylim([-1 1])
                     set(gca,'XTick',[]);
                     set(gca,'YTick',[]);
                 end

@@ -191,6 +191,7 @@ for i_sub = 1 : n_sub
                 save(fullfile(path_tmp,name_file),'emg_segment_proc'); 
             end
         end
+%         disp(idx_seq_FE);
     end
 end
 
