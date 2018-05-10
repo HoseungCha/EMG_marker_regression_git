@@ -41,14 +41,7 @@ name_Trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",..
     "슬픔",2,3;"놀람",2,4};
 name_FE = name_Trg(:,1);
 
-% load indices of information that not be analyzed because of trriger
-% problem
-load(fullfile(path_folder_anlaysis,'idx_sub_n_trial_not_be_used'))
 
-% changed expreesion order like
-%["무표정";"화남";"어금니깨물기";"비웃음(왼쪽)";"비웃음(오른쪽)";
-%"눈 세게 감기";"두려움";"행복";"키스";"슬픔";"놀람"]
-idx_FE_2_change  = [9,1:8,10:11];
 
 % number of experimnet information
 % read file path of data from raw DB
@@ -70,10 +63,6 @@ n_seg2margin_front = period_margin_FE_front/period_sampling;
 period_margin_FE_end = 0; % 표정 인스트럭션 후
 n_seg2margin_end= period_margin_FE_end/period_sampling;
 
-
-idx_marker_type = 1 : 3; % 1:X,2:Y,3:Z
-n_mark_type = length(idx_marker_type); % 1:X,2:Y,3:Z
-
 name_feat_list = {'RMS','WL','CC','SampEN'};
 id_feat2use = contains(name_feat_list,str_features2use);
 n_feat = sum([id_feat2use(1:3)*n_ch_emg,...
@@ -87,34 +76,17 @@ n_feat = sum([id_feat2use(1:3)*n_ch_emg,...
 
 % Get EMG features from windows
 for i_sub = 1 : n_sub
-    for i_trl = 1 : n_trl
-        % skip subject and trial due to trigger problem
-        for i_not_used = 1 : size(idx_sub_n_trial_not_be_used,1)
-            idx_2_compare = [i_sub,i_trl];
-            idx_2_compare(idx_sub_n_trial_not_be_used(i_not_used,:)==-1) = -1;
-            if isequal(idx_sub_n_trial_not_be_used(i_not_used,:),idx_2_compare)
-                id_do_skip = 1;
-            else
-                id_do_skip = 0;
-            end
-            if exist('id_do_skip','var')&& id_do_skip==1
-                break;
-            end
-        end
-        if id_do_skip
-            clear id_do_skip;
-            continue;
-        end
-        
+    for i_trl = 1 : n_trl      
+        disp([i_sub,i_trl]);
         for i_emg_pair = 1 : n_emg_pair
+            try
             % folder name 4 saving 
-            name_emgpair = sprintf('emg_pair_%d',i_emg_pair);
+            name_emg_pair = sprintf('emg_pair_%d',i_emg_pair);
             
             % set path
-            path_emg_pair = fullfile(path_folder_anlaysis,name_emgpair);
-            marker_set = cell(n_sub,n_trl);
+            path_emg_pair = fullfile(path_folder_anlaysis,name_emg_pair);
             
-            % read marker
+            % read emg
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
             
             % load feature windows with respect of subject and trial
@@ -152,13 +124,15 @@ for i_sub = 1 : n_sub
 
             %--------------------save features----------------------------%
             % set saving folder;
-            name_folder = ['feat_',name_emgpair,'_',cat(2,str_features2use{:})];
+            name_folder = ['feat_',name_emg_pair,'_',cat(2,str_features2use{:})];
             
-            path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
-            name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
 
-            % save
-            save(fullfile(path_tmp,name_file),'emg_feat');
+            
+%             path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
+%             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
+% 
+%             % save
+%             save(fullfile(path_tmp,name_file),'emg_feat');
             
             % plot
 %             figure;plot(emg_feat)
@@ -170,22 +144,19 @@ for i_sub = 1 : n_sub
                 emg_segment{idx_seq_FE(i_FE)} = emg_feat(trg_w(i_FE)-n_seg2margin_front:...
                     trg_w(i_FE)+n_seg-1+n_seg2margin_end,:);
             end
-            % change it in the order like
-            %["무표정";"화남";"어금니깨물기";"비웃음(왼쪽)";"비웃음(오른쪽)";
-            %"눈 세게 감기";"두려움";"행복";"키스";"슬픔";"놀람"]
-            emg_segment = emg_segment(idx_FE_2_change);
             
             % normalization of median data
             % get median mark values of non-expression
-            emg_feat_nonexp = emg_segment{1};
+            emg_feat_nonexp = emg_segment{9};
             
             % to plot, change cell to mat
             emg_segment_proc = cell2mat(emg_segment);
             
             %--------------------save emg_seg----------------------------%
             % set saving folder;
-            name_folder = ['feat_seg_',name_emgpair,'_',cat(2,str_features2use{:})];
+            name_folder = ['feat_seg_',name_emg_pair,'_',cat(2,str_features2use{:})];
 %             name_folder = ['median_v_proc','_',name_emgpair];
+
             path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
             
@@ -208,8 +179,19 @@ for i_sub = 1 : n_sub
 %             stem(1:n_seg+n_seg2margin_front+n_seg2margin_end:n_FE*(n_seg+n_seg2margin_front+n_seg2margin_end),...
 %                 max(max(emg_segment_proc))*ones(n_FE,1),'k')
             %-------------------------------------------------------------% 
-            disp([i_sub,i_trl]);
+            catch ex
+               load('C:\Users\A\Desktop\CHA\연구\EMG_marker_regression\코드\DB\DB_processed2\DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_408_wininc_204_delay_0\median_v_proc_mark_9\sub_001_trl_008.mat');
+                % set saving folder;
+                name_folder = ['feat_seg_',name_emg_pair,'_',cat(2,str_features2use{:})];
+                path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
+                name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
+            
+                emg_segment_proc = NaN(size(emg_segment_proc));
+                % save
+                save(fullfile(path_tmp,name_file),'emg_segment_proc'); 
+            end
         end
+%         disp(idx_seq_FE);
     end
 end
 

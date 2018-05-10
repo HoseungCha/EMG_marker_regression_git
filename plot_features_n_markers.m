@@ -21,6 +21,7 @@ name_folder_in_DB_prc = 'DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_40
 name_folder_emg = 'feat_seg_emg_pair';
 name_folder_marker = 'median_v_proc';
 id_plot = 1;
+name_norm_method ='do_each'; %do_each, do_all_emotion
 %-------------------------------------------------------------------------%
 
 % get toolbox
@@ -37,7 +38,61 @@ path_DB = fullfile(path_code,'DB');
 path_DB_process = fullfile(path_DB,'DB_processed2');
 path_DB_analy = fullfile(path_DB_process,name_folder_in_DB_prc);
 %--------------------experiment information-------------------------------%
-% number of experimnet information
+
+% list of markers
+name_mark = {'central down lip';'central nose';'central upper lip';'head 1';...
+    'head 2';'head 3';'head 4';'jaw';'left central lip';'left cheek';...
+    'left dimple';'left down eye';'left down lip';'left eyebrow inside';...
+    'left eyebrow outside';'left nose';'left upper eye';'left upper lip';...
+    'right central lip';'right cheek';'right dimple';'right down eye';...
+    'right down lip';'right eyebrow inside';'right eyebrow outside';...
+    'right nose';'right upper eye';'right upper lip'};
+
+% name_trl = {"angry",1,1;"clench",1,2;"contm_left",1,3;"contm_right",...
+%     1,4;"frown",1,5;"fear",1,6;"happy",1,7;"kiss",2,1;"무표정",2,2;...
+%     "sad",2,3;"surprised",2,4};
+name_fe = {'angry','clench','contm_left','contm_right',...
+    'frown','fear','happy','kiss','neutral',...
+    'sad','surprised'};
+% name_FE = name_trl(:,1);
+
+% idices of channels of emg and marekr of each Quadrant
+idx_ch_emg.q1 = 3; % right top
+idx_ch_mark.q1 =[14, 15];
+
+idx_ch_emg.q2 = 2;
+idx_ch_mark.q2 = [24,25];
+
+idx_ch_emg.q3 = 1;
+idx_ch_mark.q3 = [1,3,19,20,21,26];
+
+idx_ch_emg.q4 = 4;
+idx_ch_mark.q4 = [1,3,9,10,11,16];
+
+idx_ch_emg = cell2mat(struct2cell(idx_ch_emg));
+idx_ch_mark_cell = struct2cell(idx_ch_mark);
+n_q = 4;
+% idices of markers should be used in each emotions
+idx_marker.happy.zygo = [10,16,20,26];
+idx_marker.happy.lips = [1,3,9,11,19,21];
+
+idx_marker.surprised.eyes = [14,15,24,25];
+idx_marker.surprised.lips = [1,3,9,19];
+
+idx_marker.frown.eyes = [14,15,24,25];
+idx_marker.frown.zygo = [10,16,20,26];
+
+idx_marker.contm_left.zygo = [10,16];
+idx_marker.contm_left.lips = [1,3,9,11];
+
+idx_marker.contm_right.zygo = [20,26];
+idx_marker.contm_right.lips = [1,3,19,21];
+
+idx_marker.angry.eyes = [14,15,24,25];
+
+idx_marker.kiss.lips = [1,3,9,19];
+
+names_fe2use = string(fieldnames(idx_marker));
 
 % read file path of data from raw DB
 [name_sub,path_sub] = read_names_of_file_in_folder(fullfile(path_DB,name_DB_raw));
@@ -45,209 +100,325 @@ n_sub = length(name_sub);
 idx_sub2use = 1:n_sub;
 n_emg_pair = 3;
 n_mark = 28;
-n_FE = 11;
+n_fe = 11;
 idx_trl2use = 1:20;
+n_seg2use = 40;
 % idx_trl2use(13) = [];
 n_trl2use = length(idx_trl2use);
 n_trl= 20;
 basline_text = 50;
+n_mark_type = 3;
+n_emg_ch = 4;
+idx_marker2use = [1,3,9,10,11,14,15,16,19,20,21,25,25,26];
 
-% load indices of information that not be analyzed because of trriger
-% problem
-load(fullfile(path_DB_analy,'idx_sub_n_trial_not_be_used'))
+idx_marker_cell = struct2cell(idx_marker);
 
-% get rid of the index of the subject's whole DB which need to be reviewed
-% -1 of trial in idx_sub_n_trial_not_be_used means the whole trials of that
-% subejct has to be reviewed
-% idx_sub_to_be_reviewed = find(idx_sub_n_trial_not_be_used(:,2)==-1);
-% idx_sub2use(idx_sub_n_trial_not_be_used(idx_sub_to_be_reviewed,1)) = [];
-n_sub2use = length(idx_sub2use);
-% idx_sub_n_trial_not_be_used(idx_sub_to_be_reviewed,:) = [];
-    
-for i_emg_pair = 1 : n_emg_pair
-% for i_emg_pair = 1
-    % folder name to load 
-    name_folder4file = sprintf('%s_%d_RMS',name_folder_emg,i_emg_pair);
-    
-    % set path
-    path = fullfile(path_DB_analy,name_folder4file);
-    
-    % read file names
-    tmp = cell(n_trl,n_sub);
-    for i_sub = 1 : n_sub
-        for i_trl = 1 : n_trl
-            % check subject
-            id_sub_in_idx_not_used = find(idx_sub_n_trial_not_be_used(:,1) == i_sub, 1);
-            
-            if ~isempty(id_sub_in_idx_not_used)
-                if idx_sub_n_trial_not_be_used(id_sub_in_idx_not_used,2)==-1
-                    tmp{i_trl,i_sub} = NaN(size(emg_segment_proc));
-                end
-            end
-            temp = countmember([i_sub,i_trl],idx_sub_n_trial_not_be_used);
-            if temp(1) == 1 && temp(1) == 2
-                tmp{i_trl,i_sub} = NaN(size(emg_segment_proc));
-            else
-                load(fullfile(path, sprintf('sub_%03d_trl_%03d.mat',...
-                    i_sub,i_trl)));
-                tmp{i_trl,i_sub} = emg_segment_proc;
-            end
-        end
-    end
-    
-    %get number of features
-    [n_trl, n_sub] = size(tmp);
-    n_feat = size(tmp{1},2);
-    n_session = size(tmp{1},1);
-    
-    %----------------------plot raw data of EMG with subject--------------%
-    % plot
-    if(id_plot)
-    for i_sub= 1:n_sub
-    %cell -> mat
-    emg_raw = cell2mat(tmp(:,i_sub));
-    figure;
-    set(gcf,'Position',[1 41 1920 962]);
-    plot(emg_raw);
-    ylim([0 400])
-    hold on
-    for i = 1 : n_trl
-        text(basline_text+n_session*(i-1),max(max(emg_raw)),num2str(i));
-    end
-    stem(1:n_session:n_trl*(n_session),...
-        min(min(emg_raw))*ones(n_trl,1),'r','LineWidth',2)
-    stem(1:n_session:n_trl*(n_session),...
-        max(max(emg_raw))*ones(n_trl,1),'r','LineWidth',2)
-    hold off
-    title(strrep(name_sub{i_sub},'_',' '))
-    savefig(gcf,fullfile(path_DB_analy,sprintf('%s_%s.fig',...
-        name_folder4file,name_sub{i_sub})))
-%     c = getframe(gcf);
-%     imwrite(c.cdata,fullfile(path_DB_analy,sprintf('%s_%s.png',...
-%         name_folder4file,name_sub{i_sub})));
-    close(gcf);
-    end
-    end
-    %---------------------------------------------------------------------% 
-    
-    % z- normalizaiton
-    [emg_z,emg_mean,emg_std] = zscore(emg_raw,0,1);
-    
-    %----------------------plot z-normalization of EMG ------------------%
-    % plot
-%     if(id_plot)
-%     figure;
-%     plot(emg_z)
-%     hold on
-%     for i = 1 : n_trl
-%         text(basline_text+n_session*(i-1),max(max(emg_z)),num2str(i));
-%     end
-%     stem(1:n_session:n_trl*(n_session),...
-%         min(min(emg_z))*ones(n_trl,1),'k')
-%     stem(1:n_session:n_trl*(n_session),...
-%         max(max(emg_z))*ones(n_trl,1),'k')
-%     hold off
-%     title('z normalization of EMG')
-%     end
-    %---------------------------------------------------------------------% 
-            
-    % min-max normalizaiton
-    emg_max = max(emg_raw);
-    emg_min = min(emg_raw);
-    emg_n = (emg_raw-emg_min)./(emg_max-emg_min);
-    
-    %----------------------plot min max normalization of EMG -------------%
-%     % plot
-%     if(id_plot)
-%     figure;
-%     plot(emg_raw(:,9:12))
-%     hold on
-%     for i = 1 : n_trl
-%         text(basline_text+n_session*(i-1),max(max(emg_raw(:,1:4))),num2str(i));
-%     end
-%     stem(1:n_session:n_trl*(n_session),...
-%         min(min(emg_raw(:,1:4)))*ones(n_trl,1),'k')
-%     stem(1:n_session:n_trl*(n_session),...
-%         max(max(emg_raw(:,1:4)))*ones(n_trl,1),'k')
-%     hold off
-%     title('min-max normalization of EMG')
-%     end
-    %---------------------------------------------------------------------% 
-    
-end
+i_emg_pair = 1;
 
-for i_mark = 1 :  n_mark  
-% for i_mark = 10    
+% memory allocations
+tmp_mark = cell(n_sub,n_trl,n_mark,n_fe);
+tmp_emg = cell(n_sub,n_trl,n_fe);
+    
+for i_sub = 1 : n_sub
+for i_trl = 1 : n_trl
+for i_mark = 1 : n_mark
+    fprintf('i_sub-%d i_trl-%d i_mark-%d\n',i_sub,i_trl,i_mark)
+    %--------------------------marker-----------------------------%
     % folder name to load 
     name_folder4file = sprintf('%s_mark_%d',name_folder_marker,i_mark);
-    
+
     % set path
     path = fullfile(path_DB_analy,name_folder4file);
+
+    % load 
+    load(fullfile(path, sprintf('sub_%03d_trl_%03d.mat',...
+        i_sub,i_trl)));
+
+    % rearrange with faxial expression
+    tmp_mark(i_sub,i_trl,i_mark,:) = mat2cell(mark_median_proc,...
+        n_seg2use*ones(n_fe,1),n_mark_type);
+    %-------------------------------------------------------------%
+
+     
     
-    % read file names
-    tmp = cell(n_trl,n_sub);
-    for i_sub = 1 : n_sub
+end
+    %--------------------------emg-------------------------------%
+    % folder name to load 
+    name_folder4file = sprintf('%s_%d_RMS',name_folder_emg,i_emg_pair);
+
+    % set path
+    path = fullfile(path_DB_analy,name_folder4file);
+
+    % load 
+    load(fullfile(path, sprintf('sub_%03d_trl_%03d.mat',...
+        i_sub,i_trl)));
+
+    % rearrange with faxial expression
+    tmp_emg(i_sub,i_trl,:) = mat2cell(emg_segment_proc,n_seg2use*ones(n_fe,1),4);
+    %-------------------------------------------------------------%
+end
+end
+
+%-------------------------normalization-----------------------------------%
+switch name_norm_method
+    case 'do_each'
+        tmp_mark = cellfun(@minmax_norm_abs,tmp_mark,...
+                'UniformOutput',false);
+        tmp_emg = cellfun(@minmax_norm,tmp_emg,...
+                'UniformOutput',false);
+    case 'do_all_emotion'
+        for i_sub = 1 : n_sub
         for i_trl = 1 : n_trl
-            % check subject
-            id_sub_in_idx_not_used = find(idx_sub_n_trial_not_be_used(:,1) == i_sub, 1);
-            
-            if ~isempty(id_sub_in_idx_not_used)
-                if idx_sub_n_trial_not_be_used(id_sub_in_idx_not_used,2)==-1
-                    tmp{i_trl,i_sub} = NaN(size(mark_median_proc));
-                end
-            end
-            temp = countmember([i_sub,i_trl],idx_sub_n_trial_not_be_used);
-            if temp(1) == 1 && temp(1) == 2
-                tmp{i_trl,i_sub} = NaN(size(mark_median_proc));
-            else
-                try
-                load(fullfile(path, sprintf('sub_%03d_trl_%03d.mat',...
-                    i_sub,i_trl)));
-                tmp{i_trl,i_sub} = mark_median_proc;
-                catch ex
-                    if ex.identifier == 'MATLAB:load:couldNotReadFile'
-                        tmp{i_trl,i_sub} = NaN(size(mark_median_proc));
-                    end
-                end
+            tmp = cat(1,tmp_emg{i_sub,i_trl,:});
+            tmp_emg(i_sub,i_trl,:) = mat2cell(minmax_norm(tmp),...
+                n_seg2use*ones(n_fe,1),4);
+            for i_mark = 1 : n_mark
+                tmp = cat(1,tmp_mark{i_sub,i_trl,i_mark,:});
+                tmp_mark(i_sub,i_trl,i_mark,:) = ...
+                    mat2cell(minmax_norm_abs(tmp),...
+                    n_seg2use*ones(n_fe,1),3);
             end
         end
-    end
+        end
+end
+%-------------------------------------------------------------------------%
+
+idx_fe2use = find(contains(name_fe,names_fe2use)==1);
+
+for i_fe = 1 : length(idx_marker_cell)
+    % display of facial expression
+    disp(names_fe2use{i_fe});
+    names_face_unit = fieldnames(idx_marker_cell{i_fe});
+    n_face_unit = length(names_face_unit);
     
-    %get number of features
-    n_mark_type = size(tmp{1},2);
+    %get original index of fe
+    idx_fe_org = find(contains(name_fe,names_fe2use{i_fe}));
     
-    %----------------------plot raw data of Marker with subject--------------%
-    % plot
-    if(id_plot)
-    for i_sub= 1:n_sub
-    %cell -> mat
-    mark_raw = cell2mat(tmp(:,i_sub));
-    figure;
-    set(gcf,'Position',[1 41 1920 962]);
-    plot(mark_raw);
-    ylim([-20 20])
-    hold on
-    for i = 1 : n_trl
-        text(basline_text+n_session*(i-1),max(max(mark_raw)),num2str(i));
-    end
-    stem(1:n_session:n_trl*(n_session),...
-        min(min(mark_raw))*ones(n_trl,1),'r','LineWidth',2)
-    stem(1:n_session:n_trl*(n_session),...
-        max(max(mark_raw))*ones(n_trl,1),'r','LineWidth',2)
-    hold off
-    title(strrep(name_sub{i_sub},'_',' '))
-    savefig(gcf,fullfile(path_DB_analy,sprintf('%s_%s.fig',...
-        name_folder4file,name_sub{i_sub})))
-%     c = getframe(gcf);
-%     imwrite(c.cdata,fullfile(path_DB_analy,sprintf('%s_%s.png',...
-%         name_folder4file,name_sub{i_sub})));
-    close(gcf);
-    end
-    end
-    %---------------------------------------------------------------------%
-    % z- normalizaiton
-    [mark_z,mark_mean,mark_std] = zscore(mark_raw,0,1);
+    idx_fu_type_cell = struct2cell(idx_marker_cell{i_fe});
+    for i_face_unit = 1 : n_face_unit
+        % display of facial unit
+        disp(names_face_unit{i_face_unit});
         
+        % get marker number which is needed
+        idx_mark = idx_fu_type_cell{i_face_unit};
+
+        for i_mark = idx_mark
+%         for i_mark = 10
+            disp(name_mark{i_mark});
+            tmp_mark_cell = tmp_mark(:,:,i_mark,idx_fe_org);
+%             tmp_mark_cell = cellfun(@minmax_norm_abs,tmp_mark_cell,...
+%                 'UniformOutput',false);
+
+            tmp_emg_cell = tmp_emg(:,:,idx_fe_org);
+%             tmp_emg_cell = cellfun(@minmax_norm,tmp_emg_cell,...
+%                 'UniformOutput',false);
+
+            % get emg channels you needed with position of face
+            idx_use_q = [];
+            for i_q = 1 : n_q
+                if ~isempty(find(countmember(idx_ch_mark_cell{i_q},i_mark)==1, 1))
+                    idx_use_q = [idx_use_q,i_q];
+                end
+            end
+            
+            
+            
+            %------------------get median  values-------------------------%
+            tmp_mark_rep = zeros(n_seg2use,n_mark_type);
+            for i_mark_type = 1 : n_mark_type
+                tmp = cellfun(@(x) x(:,i_mark_type), tmp_mark_cell,...
+                    'UniformOutput',false);
+                tmp = cat(2,tmp{:});
+                tmp_mark_rep(:,i_mark_type) = nanmedian(tmp,2);
+            end
+            
+            tmp_emg_rep = zeros(n_seg2use,n_emg_ch);
+            for i_emg_ch = 1 : n_emg_ch
+                tmp = cellfun(@(x) x(:,i_emg_ch), tmp_emg_cell,...
+                        'UniformOutput',false);
+                tmp = cat(2,tmp{:});
+                tmp_emg_rep(:,i_emg_ch) = nanmedian(tmp,2);
+            end
+            %-------------------------------------------------------------%
+
+            name_save = sprintf('Norm_type-%s 감정-%d-%s 부위-%s 마커-%d-%s',...
+                name_norm_method,...
+                idx_fe_org,names_fe2use{i_fe},...
+                names_face_unit{i_face_unit},...
+                i_mark,name_mark{i_mark});
+            disp(name_save);  %#ok<DSPS>
+            %--------------------------plot---------------------------%            
+            figure('Name',name_save,'NumberTitle','off');
+            subplot(2,1,1);
+            title('marker median 값')
+            plot(tmp_mark_rep);
+            ylim([-1 1])
+            subplot(2,1,2);
+            title('emg median 값')
+            plot(tmp_emg_rep);
+            ylim([-1 1])
+            % make it more tight
+            tightfig;
+            %-----------------------save fig--------------------------%
+            savefig(gcf,fullfile(path_DB_analy,[name_save,'_template']));
+            %---------------------------------------------------------%
+            close;
+            figure('Name',name_save,'NumberTitle','off');
+            c = 0;
+            for i_sub = 1 : n_sub
+                for i_trl = 1 : n_trl
+                    c = c + 1;
+                    subplot(n_trl,n_sub,c)
+                    plot(tmp_mark_cell{i_sub,i_trl})
+                    hold on;
+                    plot(tmp_emg_cell{i_sub,i_trl}...
+                        (:,idx_ch_emg(idx_use_q)),'k');
+                    ylim([-1 1])
+                    set(gca,'XTick',[]);
+                    set(gca,'YTick',[]);
+                end
+            end
+            % make it more tight
+            tightfig;
+            %-----------------------save fig--------------------------%
+            savefig(gcf,fullfile(path_DB_analy,name_save));
+            %---------------------------------------------------------%
+            close;
+        end
+    end
+end
+
+
+
+%=========================functions=======================================%
+
+
+
+
+%=========================================================================%
+
+% back up 
+% for i_emg_pair = 1
+% for i_mark = idx_marker2use(1:7)
+%     fprintf('i_mark: %d',i_mark);
+%     % read file names
+%     tmp_mark = cell(n_trl,n_sub);
+%     tmp_emg = cell(n_trl,n_sub);
+%     for i_sub = 1 : n_sub
+%         for i_trl = 1 : n_trl
+%             %--------------------------marker-----------------------------%
+%             % folder name to load 
+%             name_folder4file = sprintf('%s_mark_%d',name_folder_marker,i_mark);
+%     
+%             % set path
+%             path = fullfile(path_DB_analy,name_folder4file);
+%     
+%             % load 
+%             load(fullfile(path, sprintf('sub_%03d_trl_%03d.mat',...
+%                 i_sub,i_trl)));
+%             
+%             % rearrange with faxial expression
+%             tmp_mark{i_trl,i_sub} = mat2cell(mark_median_proc,n_seg2use*ones(n_fe,1),n_mark_type);
+%             %-------------------------------------------------------------%
+%             
+%              %--------------------------emg-------------------------------%
+%             % folder name to load 
+%             name_folder4file = sprintf('%s_%d_RMS',name_folder_emg,i_emg_pair);
+%              
+%             % set path
+%             path = fullfile(path_DB_analy,name_folder4file);
+%     
+%             % load 
+%             load(fullfile(path, sprintf('sub_%03d_trl_%03d.mat',...
+%                 i_sub,i_trl)));
+%             
+%             % rearrange with faxial expression
+%             tmp_emg{i_trl,i_sub} = mat2cell(emg_segment_proc,n_seg2use*ones(n_fe,1),4);
+%             %-------------------------------------------------------------%
+%         end
+%     end
+%     tmp_mark = cat(2,tmp_mark{:});
+%     tmp_emg = cat(2,tmp_emg{:});
+%     
+%     for i_fe = idx_fe2use
+%         tmp_mark_ = reshape(tmp_mark(i_fe,:),n_sub,n_trl);
+%         tmp_mark_ = cellfun(@minmax_norm_abs,tmp_mark_,'UniformOutput',false);
+%         
+%         tmp_emg_ = reshape(tmp_emg(i_fe,:),n_sub,n_trl);
+%         tmp_emg_ = cellfun(@minmax_norm,tmp_emg_,'UniformOutput',false);
+%         
+%         name_save = sprintf('감정-%s 마커-%s',name_fe{i_fe},name_mark{i_mark});
+%         disp(name_save); %#ok<DSPS>
+%         figure('Name',name_save,'NumberTitle','off');
+%         c = 0;
+%         for i_sub = 1 : n_sub
+%             for i_trl = 1 : n_trl
+%                 c = c + 1;
+%                 subplot(n_trl,n_sub,c)
+%                 % upper part: [14,15,24,25]
+%                 if ~isempty(find(countmember([14,15,24,25],i_mark)==1, 1))
+%                     idx_tmp = [2,3]; 
+%                 else 
+%                 %bottom part:[1,3,9,10,11,16,19,20,21,26];
+%                     idx_tmp = [1,4];
+%                 end
+%                 plot(tmp_mark_{i_sub,i_trl})
+%                 hold on;
+%                 plot(tmp_emg_{i_sub,i_trl}(:,idx_tmp),'k');
+%                 set(gca,'XTick',[]);
+%                 set(gca,'YTick',[]);
+%             end
+%         end
+%         % make it more tight
+%         tightfig;
+% 
+%         %-----------------------save fig----------------------------------%
+%         savefig(gcf,fullfile(path_DB_analy,name_save));
+%         %-----------------------------------------------------------------%
+%         
+%         close;
+%     end
+% 
+%     
+% end
+% end
+
+
+%     %get number of features
+%     n_mark_type = size(tmp_mark{1},2);
+%     
+%     %----------------------plot raw data of Marker with subject--------------%
+%     % plot
+%     if(id_plot)
+%     for i_sub= 1:n_sub
+%     %cell -> mat
+%     mark_raw = cell2mat(tmp_mark(:,i_sub));
+%     figure;
+%     set(gcf,'Position',[1 41 1920 962]);
+%     plot(mark_raw);
+%     ylim([-20 20])
+%     hold on
+%     for i = 1 : n_trl
+%         text(basline_text+n_session*(i-1),max(max(mark_raw)),num2str(i));
+%     end
+%     stem(1:n_session:n_trl*(n_session),...
+%         min(min(mark_raw))*ones(n_trl,1),'r','LineWidth',2)
+%     stem(1:n_session:n_trl*(n_session),...
+%         max(max(mark_raw))*ones(n_trl,1),'r','LineWidth',2)
+%     hold off
+%     title(strrep(name_sub{i_sub},'_',' '))
+%     savefig(gcf,fullfile(path_DB_analy,sprintf('%s_%s.fig',...
+%         name_folder4file,name_sub{i_sub})))
+% %     c = getframe(gcf);
+% %     imwrite(c.cdata,fullfile(path_DB_analy,sprintf('%s_%s.png',...
+% %         name_folder4file,name_sub{i_sub})));
+%     close(gcf);
+%     end
+%     end
+%     %---------------------------------------------------------------------%
+%     % z- normalizaiton
+%     [mark_z,mark_mean,mark_std] = zscore(mark_raw,0,1);
+%         
     %--------------------plot z-normalization of Marker ------------------%
 %     % plot
 %     if(id_plot)
@@ -267,10 +438,10 @@ for i_mark = 1 :  n_mark
     %---------------------------------------------------------------------% 
     
     % min-max normalizaiton
-    mark_max = max(mark_raw);
-    mark_min = min(mark_raw);
-    mark_n = (mark_raw-mark_min)./(mark_max-mark_min);
-    
+%     mark_max = max(mark_raw);
+%     mark_min = min(mark_raw);
+%     mark_n = (mark_raw-mark_min)./(mark_max-mark_min);
+%     
     %----------------------plot z-normalization of EMG ------------------%
 %     % plot
 %     if(id_plot)
@@ -288,5 +459,3 @@ for i_mark = 1 :  n_mark
 %     title('min max normalization of Marker')
 %     end
     %---------------------------------------------------------------------% 
-    
-end

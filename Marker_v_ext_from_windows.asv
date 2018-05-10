@@ -242,7 +242,31 @@ for i_sub = 1 : n_sub
             
             %-----------save restored singal with fixed baseline-----------%
             % set saving folder;
-
+<<<<<<< HEAD
+            name_folder = ['median_v_restored','_',name_mark_folder];
+            path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
+            name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
+            
+            % save
+            save(fullfile(path_tmp,name_file),'mark_restored_mat');
+            
+            % plot
+            if(id_plot)
+            figure;title('restored signal who ranged with non-expression with zeros and baselin_with_non-exp')
+            plot(mark_restored_mat)
+            text(1:n_seg_total:n_FE*(n_seg_total),...
+                min(min(mark_restored_mat))*ones(n_FE,1),...
+                name_FE(idx_FE_2_change))
+            hold on;
+            stem(1:n_seg_total:n_FE*(n_seg_total),...
+                min(min(mark_restored_mat))*ones(n_FE,1),'k')
+            hold on
+            stem(1:n_seg_total:n_FE*(n_seg_total),...
+                max(max(mark_restored_mat))*ones(n_FE,1),'k')
+            close(gcf);
+            end
+            
+=======
 %             name_folder = ['median_v_restored','_',name_mark_folder];
 %             if exist(fullfile(path_folder_anlaysis,name_folder),'dir');
 %                 rmdir(fullfile(path_folder_anlaysis,name_folder), 's')
@@ -267,6 +291,7 @@ for i_sub = 1 : n_sub
 %             stem(1:n_seg_total:n_FE*(n_seg_total),...
 %                 max(max(mark_restored_mat))*ones(n_FE,1),'k')
 %             end
+>>>>>>> 85bf02c0d6f0a6a739c4af4f6280ad43d1e9ce8b
             %-------------------------------------------------------------% 
             catch ex
                 load('C:\Users\A\Desktop\CHA\연구\EMG_marker_regression\코드\DB\DB_processed2\DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_408_wininc_204_delay_0\median_v_proc_mark_9\sub_001_trl_008.mat');
