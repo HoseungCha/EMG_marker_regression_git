@@ -156,6 +156,8 @@ switch name_norm_method
 end
 %-------------------------------------------------------------------------%
 
+% idx_fe2use = find(contains(name_fe,names_fe2use)==1);
+
 for i_fe = 1 : length(idx_mark2use_cell)
     % display of facial expression
     disp(names_fe2use{i_fe});
@@ -178,10 +180,10 @@ for i_fe = 1 : length(idx_mark2use_cell)
         
         % get index of marker which will be plotted
         idx_mark = idx_fu_type_cell{i_fu};
-        disp(idx_mark);
+
         for i_mark = idx_mark
             % display of marker name
-            disp(i_mark);
+            disp(name_mark{i_mark});
             
             % get channel of EMG to be plotted based on face parts
             tmp = [];
@@ -190,7 +192,7 @@ for i_fe = 1 : length(idx_mark2use_cell)
                     tmp = [tmp;i_face_part];
                 end
             end
-            idx_emg_chan2plot = fu_cell{tmp}{1};
+            idx_emg_chan2plot = fu_cell{tmp
             
             % get DB of that emotion
             tmp_mark = mark_seg(:,:,idx_fe_org,i_mark);
@@ -240,7 +242,8 @@ for i_fe = 1 : length(idx_mark2use_cell)
                     subplot(n_sub,n_trl,c)
                     plot(tmp_mark{i_sub,i_trl}(:,1:2))
                     hold on;
-                    plot(tmp_emg{i_sub,i_trl}(:,idx_emg_chan2plot),'k');
+                    plot(tmp_emg{i_sub,i_trl}...
+                        (:,:),'k');
                     ylim([-1 1])
                     set(gca,'XTick',[]);
                     set(gca,'YTick',[]);

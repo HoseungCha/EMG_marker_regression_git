@@ -1,90 +1,114 @@
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------%
 % 1: DB_windows_extraion.m
-% 2: Marker_v_ext_from_windows.m 
+% 2: Marker_v_ext_from_windows.m
 % 3: EMG_feat_ext_from_windows.m %%%%%current code%%%%%%%%%%%%%%
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------%
 % developed by Ho-Seung Cha, Ph.D Student,
 % CONE Lab, Biomedical Engineering Dept. Hanyang University
 % under supervison of Prof. Chang-Hwan Im
 % All rights are reserved to the author and the laboratory
 % contact: hoseungcha@gmail.com
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------%
 clc; clear; close all;
 
-%-----------------------Code anlaysis parmaters----------------------------
+
+%------------------------code analysis parameter--------------------------%
+% name of raw DB
+name_DB_raw = 'DB_raw2';
+
 % name of process DB to analyze in this code
-name_folder = 'DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_408_wininc_204_delay_0';
+name_DB_process = 'DB_processed2';
+
+% name of anlaysis DB in the process DB
+name_DB_analy =...
+    'DB_raw2_marker_wsize_24_winc_12_emg_wsize_408_winc_204_delay_0';
+
+% name of emg DB in the processed DB
+name_DB_emg = 'emg_pair';
 
 % decide feature to extract
-str_features2use = {'RMS'};
+name_feat2use = {'RMS'};
+%-------------------------------------------------------------------------%
 
-% decide normalization type
-str_use_z_norm = 'z_norm';
-str_use_cal_norm = 'cal_norm';
-id_type_norm = str_use_z_norm;
-%--------------------------------------------------------------------------
+%-------------set paths in compliance with Cha's code structure-----------%
 
+% path of research, which contains toolbox
+path_research = fileparts(fileparts(fileparts(fullfile(cd))));
+
+% path of code, which
+path_code = fileparts(cd);
+path_DB = fullfile(path_code,'DB');
+path_DB_raw = fullfile(path_DB,name_DB_raw);
+path_DB_process = fullfile(path_DB,name_DB_process);
+path_DB_analy = fullfile(path_DB_process,name_DB_analy);
+%-------------------------------------------------------------------------%
+
+%-------------------------add functions-----------------------------------%
 % get toolbox
-addpath(genpath(fullfile(fileparts(fileparts(fileparts(cd))),'_toolbox')));
+addpath(genpath(fullfile(path_research,'_toolbox')));
+
 % add functions
 addpath(genpath(fullfile(cd,'functions')));
-% path for processed data
-path_parent=fileparts(pwd); % parent path which has DB files
-% get path
-path_DB_process = fullfile(path_parent,'DB','DB_processed2');
-path_folder_anlaysis = fullfile(path_DB_process,name_folder);
+%-------------------------------------------------------------------------%
 
-%-----------------------experiment information-----------------------------
-% list of paris of instruction and trigger
-name_Trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",...
-    1,4;"눈 세게 감기",1,5;"두려움",1,6;"행복",1,7;"키스",2,1;"무표정",2,2;...
-    "슬픔",2,3;"놀람",2,4};
-name_FE = name_Trg(:,1);
-
-
-
-% number of experimnet information
-% read file path of data from raw DB
-[name_sub,path_sub] = read_names_of_file_in_folder(fullfile(path_parent,'DB','DB_raw2'));
-n_sub = length(name_sub);
-n_trl = 20;
-n_trg = 26;
-n_emg_pair = 3;
-n_ch_emg = 4;
-
+%-----------------------experiment information----------------------------%
 % period of facial expression
 period_FE_exp = 3;
+period_margin_FE_front =1; % time period to be used before instruction
+period_margin_FE_end = 0; % time period to be used after instruction
+
+% samping period of facial expression (window increase size)
 period_sampling = 0.1;
-n_FE = length(name_FE);
+
+% list of paris of instruction and trigger
+name_trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",...
+    1,4;"눈 세게 감기",1,5;"두려움",1,6;"행복",1,7;"키스",2,1;"무표정",2,2;...
+    "슬픔",2,3;"놀람",2,4};
+name_fe = name_trg(:,1);
+
+% read file path of data from raw DB
+[name_sub,path_sub] = read_names_of_file_in_folder(fullfile(path_code,'DB','DB_raw2'));
+
+% number of windows for margin front and end
+n_win2margin_front = period_margin_FE_front/period_sampling;
+n_win2margin_end= period_margin_FE_end/period_sampling;
+
+%----------feautre settings
+name_feat_list = {'RMS','WL','CC','SampEN','Min_Max','Teager','Hjorth'};
+
+% value which should be multiplied by EMG channel
+v_multply_of_feat = [1 1 1 4];
+
+% indices of features to be extracted
+idx_ftype2use = contains(name_feat_list,name_feat2use);
+
+% number of subject, trials, triggers and channels
+n_sub = length(name_sub);
+n_trl = 20;
+n_emg_pair = 3;
+n_ch_emg = 4;
+n_fe = length(name_fe);
 n_seg = period_FE_exp/period_sampling;
-period_margin_FE_front =1; % 표정 인스트럭션 전
-n_seg2margin_front = period_margin_FE_front/period_sampling;
 
-period_margin_FE_end = 0; % 표정 인스트럭션 후
-n_seg2margin_end= period_margin_FE_end/period_sampling;
+% number of features to be used
+n_feat2use = sum(v_multply_of_feat(idx_ftype2use)*n_ch_emg);
+%-------------------------------------------------------------------------%
 
-name_feat_list = {'RMS','WL','CC','SampEN'};
-id_feat2use = contains(name_feat_list,str_features2use);
-n_feat = sum([id_feat2use(1:3)*n_ch_emg,...
-    id_feat2use(n_ch_emg)*n_ch_emg*n_ch_emg]);
-%--------------------------------------------------------------------------
+%----------------------memory allocation for results----------------------%
+emg_seg = cell(n_sub,n_trl,n_fe,n_emg_pair);
+%-------------------------------------------------------------------------%
 
-% %% prepare save folder
-% Name_folder = sprintf('N_word_%d_N_line_%d_size_line_spac_%d',...
-%     N_word_in_line,N_line,size_inc_height);
-% path4saving = make_path_n_retrun_the_path(path_DB,Name_folder);
-
-% Get EMG features from windows
+%------------------------------------main---------------------------------%
 for i_sub = 1 : n_sub
-    for i_trl = 1 : n_trl      
+    for i_trl = 1 : n_trl
         disp([i_sub,i_trl]);
         for i_emg_pair = 1 : n_emg_pair
-            try
-            % folder name 4 saving 
+            % folder name 4 saving
             name_emg_pair = sprintf('emg_pair_%d',i_emg_pair);
             
             % set path
-            path_emg_pair = fullfile(path_folder_anlaysis,name_emg_pair);
+            path_emg_pair = fullfile(path_DB_analy,...
+                [name_DB_emg,'_',num2str(i_emg_pair)]);
             
             % read emg
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
@@ -94,203 +118,108 @@ for i_sub = 1 : n_sub
             
             % get emg features from windows
             len_win = length(emg_win); % number of windows
-            emg_feat = zeros(len_win,n_feat);
+            
+            % memory allocations
+            emg_feat = zeros(len_win,n_feat2use);
+            
+            % get features from windows of emg
             for i_win = 1 : len_win
-                % time domain features 
-                curr_win = emg_win{i_win};
-                if id_feat2use(1) ==1
-                    temp_rms = sqrt(mean(curr_win.^2));
-                else
-                    temp_rms = [];
-                end
-                if id_feat2use(2) ==1
-                    temp_WL = sum(abs(diff(curr_win,2)));
-                else
-                    temp_WL = [];
-                end
-                if id_feat2use(3) ==1
-                    temp_SampEN = SamplEN(curr_win,2);
-                else
-                    temp_SampEN = [];
-                end
-                if id_feat2use(4) ==1
-                    temp_CC = featCC(curr_win,4);
-                else
-                    temp_CC = [];
-                end
-                emg_feat(i_win,:) = [temp_rms,temp_WL,temp_SampEN,temp_CC];
+                % time domain features
+                emg_feat(i_win,:) = EMG_feat_extraction(emg_win{i_win},...
+                    name_feat_list,name_feat2use);
             end
             
-
-            %--------------------save features----------------------------%
-            % set saving folder;
-            name_folder = ['feat_',name_emg_pair,'_',cat(2,str_features2use{:})];
-            
-
-            
-%             path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
-%             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
-% 
-%             % save
-%             save(fullfile(path_tmp,name_file),'emg_feat');
-            
-            % plot
-%             figure;plot(emg_feat)
-            %-------------------------------------------------------------%    
-            
-            % extracted part of preiod of facial expression
-            emg_segment = cell(n_FE,1);
-            for i_FE = 1 : n_FE
-                emg_segment{idx_seq_FE(i_FE)} = emg_feat(trg_w(i_FE)-n_seg2margin_front:...
-                    trg_w(i_FE)+n_seg-1+n_seg2margin_end,:);
+            % extract signal part of during facial expression
+            emg_segment = cell(n_fe,1);
+            for i_fe = 1 : n_fe
+                try
+                    emg_segment{idx_seq_fe(i_fe)} = ...
+                        emg_feat(trg_w(i_fe)-n_win2margin_front:...
+                        trg_w(i_fe)+n_seg-1+n_win2margin_end,:);
+                catch
+                    emg_segment{idx_seq_fe(i_fe)} = ...
+                        NaN(n_win2margin_front+n_seg+n_win2margin_end,n_ch_emg);
+                end
             end
-            
-            % normalization of median data
-            % get median mark values of non-expression
-            emg_feat_nonexp = emg_segment{9};
-            
-            % to plot, change cell to mat
-            emg_segment_proc = cell2mat(emg_segment);
-            
-            %--------------------save emg_seg----------------------------%
-            % set saving folder;
-            name_folder = ['feat_seg_',name_emg_pair,'_',cat(2,str_features2use{:})];
-%             name_folder = ['median_v_proc','_',name_emgpair];
-
-            path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
-            name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
-            
-            % save
-            save(fullfile(path_tmp,name_file),'emg_segment_proc');
-            
-            % plot
-%             figure;
-%             plot(emg_segment_proc)
-%             text(1:n_seg+n_seg2margin_front+...
-%                 n_seg2margin_end:n_FE*(n_seg+n_seg2margin_front+...
-%                 n_seg2margin_end),...
-%                 min(min(emg_segment_proc))*ones(n_FE,1),...
-%                 name_FE(idx_FE_2_change))
-%             hold on;
-%             stem(1:n_seg+n_seg2margin_front+n_seg2margin_end:n_FE*...
-%                 (n_seg+n_seg2margin_front+n_seg2margin_end),...
-%                 min(min(emg_segment_proc))*ones(n_FE,1),'k')
-%             hold on
-%             stem(1:n_seg+n_seg2margin_front+n_seg2margin_end:n_FE*(n_seg+n_seg2margin_front+n_seg2margin_end),...
-%                 max(max(emg_segment_proc))*ones(n_FE,1),'k')
-            %-------------------------------------------------------------% 
-            catch ex
-               load('C:\Users\A\Desktop\CHA\연구\EMG_marker_regression\코드\DB\DB_processed2\DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_408_wininc_204_delay_0\median_v_proc_mark_9\sub_001_trl_008.mat');
-                % set saving folder;
-                name_folder = ['feat_seg_',name_emg_pair,'_',cat(2,str_features2use{:})];
-                path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
-                name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
-            
-                emg_segment_proc = NaN(size(emg_segment_proc));
-                % save
-                save(fullfile(path_tmp,name_file),'emg_segment_proc'); 
-            end
+            % collected DB with subject, tiral, emotion and emgpair
+            emg_seg(i_sub,i_trl,:,i_emg_pair) = emg_segment;
+            %-------------------------------------------------------------%
         end
-%         disp(idx_seq_FE);
     end
 end
+%-------------------------------------------------------------------------%
+
+%-----------------------------save emg_seg--------------------------------%
+save(fullfile(path_DB_analy,[name_DB_emg,'_emg_seg']),'emg_seg');
+%-------------------------------------------------------------------------%
 
 
+function tmp_feat = EMG_feat_extraction(curr_win,name_feat_list,name_feat2use)
 
-%-----------------------just for back up----------------------------
+% determination of feature types to extract
+id_feat2ext = contains(name_feat_list,name_feat2use);
 
-% 
-% % experiemnt infromation
-% Name_Trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",1,4;"눈 세게 감기",1,5;"두려움",1,6;"행복",1,7;"키스",2,1;"무표정",2,2;"슬픔",2,3;"놀람",2,4};
-% Name_FE = Name_Trg(:,1);
-% N_sub = 5;
-% N_trl = 20;
-% % N_mark = 28;
-% N_emgpair = 3;
-% % N_mark_type = 3; % 1:X,2:Y,3:Z
-% n_ch_emg = 4;
-% N_order_cc = 4;
-% name_feat_list = {'RMS','WL','CC','SampEN'};
-% % determine normalization type
-% str_use_z_norm = 'z_norm';
-% str_use_cal_norm = 'cal_norm';
-% id_type_norm = str_use_z_norm;%%%%%%%%%%%%%%%%%%%%decide normalization type
-% % decide feature to extract
-% str_features2use = {'RMS','WL'};
-% 
-% 
-% %% Get median value from marker
-% for i_emg_pair = 1 : N_emgpair
-%     % folder name 4 saving
-%     name_folder = sprintf('emg_pair_%d',i_emg_pair);
-%     %% set saving folder;
-%     name_folder4norm_DB = [id_type_norm,'_',name_folder,'_',cat(2,str_features2use{:})];
-%     path_emg_pair = make_path_n_retrun_the_path(path_DB, name_folder4norm_DB);
-% 
-%     %% get path
-%     path_emg = fullfile(path_DB,name_folder);
-%     feat_set = cell(N_sub,N_trl);
-%     for i_sub = 1 : N_sub
-%         for i_trl = 1 : N_trl
-%             %% read EMG 
-%             fname = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
-%             load(fullfile(path_emg,fname)); % get EMG
-% %             fname = sprintf('sub_%03d_trl_%03d_raw',i_sub,i_trl);
-% %             load(fullfile(path_mark,fname)); % get markers
-%             
-%             %% get RMS from EMG, get medial value from marker
-%             N_window = length(emg_win); % number of windows
-%             emg_feat = zeros(N_window,n_feat);
-%             for i_win = 1 : N_window
-%                 %% EMG feat extraion
-%                 % time domain features 
-%                 curr_win = emg_win{i_win};
-%                 if id_feat2use(1) ==1
-%                     temp_rms = sqrt(mean(curr_win.^2));
-%                 else
-%                     temp_rms = [];
-%                 end
-%                 if id_feat2use(2) ==1
-%                     temp_WL = sum(abs(diff(curr_win,2)));
-%                 else
-%                     temp_WL = [];
-%                 end
-%                 if id_feat2use(3) ==1
-%                     temp_SampEN = SamplEN(curr_win,2);
-%                 else
-%                     temp_SampEN = [];
-%                 end
-%                 if id_feat2use(4) ==1
-%                     temp_CC = featCC(curr_win,4);
-%                 else
-%                     temp_CC = [];
-%                 end
-%                 emg_feat(i_win,:) = [temp_rms,temp_WL,temp_SampEN,temp_CC];
-%                 % get image from raw emg
-% %                 temp_img = mat2im(curr_win,parula(numel(curr_win)));
-% %                 fname = sprintf('sub_%03d_trl_%03d_win_%03d',i_sub,i_trl,i_win);
-% %                 imwrite(temp_img,fullfile(path_img,[fname,'.png']));
-%                 
-%             end
-%             %% type of normalization
-%             switch id_type_norm
-%                 case str_use_cal_norm
-%                 %% Calibration session에서 Nomalization
-%                     Max = max(emg_feat(1 : trg_w(6),:));
-%                     Min = min(emg_feat(1 : trg_w(6),:));
-%                     emg_n = (emg_feat-Min)./(Max-Min);
-%                     emg_n(:,9:end) = emg_feat(:,9:end);% RMS, WL만 normalization
-%                 case id_type_norm
-%                 %% zscore normaliztion
-%                     emg_n = zscore(emg_feat,0,1); 
-%                     emg_n(:,9:end) = emg_feat(:,9:end);% RMS, WL만 normalization
-%             end
-%             %% feature set
-%             feat_set{i_sub,i_trl} = emg_n;
-%             disp([i_sub,i_trl]);
-%         end
-%     end
-%     %% save
-%     name_save_file = sprintf('feat_set_%s',cat(2,str_features2use{:}));
-%     save(fullfile(path_emg_pair,name_save_file),'feat_set');
-% end
+% get number of channel of signal window
+n_ch = size(curr_win,2);
+
+if id_feat2ext(1)
+    % RMS
+    tmp_rms = sqrt(mean(curr_win.^2));
+else
+    tmp_rms = [];
+end
+
+if id_feat2ext(2)
+    % WL
+    tmp_WL = sum(abs(diff(curr_win,2)));
+else
+    tmp_WL = [];
+end
+
+if id_feat2ext(3)
+    % CC
+    tmp_CC = featCC(curr_win,4);
+else
+    tmp_CC = [];
+end
+
+if id_feat2ext(4)
+    % SAMPLE ENTROPY
+    tmp_SampEN = SamplEN(curr_win,2);
+else
+    tmp_SampEN = [];
+end
+
+if id_feat2ext(5)
+    % MIN MAX
+    tmp = minmax(curr_win');
+    tmp_min_max = (tmp(:,2)-tmp(:,1))';
+else
+    tmp_min_max = [];
+end
+
+if id_feat2ext(6)
+    % TEAGER
+    tmp_teager = zeros(1,n_ch);
+    for i = 1 : n_ch
+        tmp = cal_freqweighted_energy(curr_win(:,i),1,'teager');
+        tmp_teager(i) = sum(tmp)/length(tmp);
+    end
+else
+    tmp_teager = [];
+end
+
+if id_feat2ext(7)
+    % HJORTH PARAMETERS
+    tmp_activity = var(curr_win);
+    tmp_mobility = sqrt(var(diff(curr_win))./var(curr_win));
+    tmp_complexity = sqrt(var(diff(diff(curr_win)))./var(diff(curr_win)));
+    tmp_Hjorth = [tmp_activity,tmp_mobility,tmp_complexity];
+else
+    tmp_Hjorth = [];
+end
+
+% concatinating features
+tmp_feat = [tmp_rms,tmp_WL,tmp_SampEN,tmp_CC,...
+    tmp_min_max,tmp_teager,tmp_Hjorth];
+end

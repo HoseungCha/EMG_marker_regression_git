@@ -1,8 +1,7 @@
 %--------------------------------------------------------------------------
 % 1: DB_windows_extraion.m
-% 2: Marker_v_ext_from_windows.m %%%%%current code%%%%%%%%%%%%%%
+% 2: Marker_v_ext_from_windows.m %-current code-%
 % 3: EMG_feat_ext_from_windows.m
-% you should check Code anlaysis parmaters before starting code
 %--------------------------------------------------------------------------
 % developed by Ho-Seung Cha, Ph.D Student,
 % CONE Lab, Biomedical Engineering Dept. Hanyang University
@@ -12,28 +11,62 @@
 %--------------------------------------------------------------------------
 clc; clear; close all;
 
-%-----------------------Code anlaysis parmaters----------------------------
+%------------------------code analysis parameter--------------------------%
+% name of raw DB
+name_DB_raw = 'DB_raw2';
+
 % name of process DB to analyze in this code
-name_folder = 'DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_408_wininc_204_delay_0';
+name_DB_process = 'DB_processed2';
+
+% name of anlaysis DB in the process DB
+name_DB_analy =...
+    'DB_raw2_marker_wsize_24_winc_12_emg_wsize_408_winc_204_delay_0';
+
+% name of marker DB in the processed DB
+name_DB_marker = 'mark';
 
 id_plot = 0;
-% determine normalization type
-% str_use_z_norm = 'z_norm';
-% str_use_cal_norm = 'cal_norm';
-% id_type_norm = str_use_z_norm;
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------%
 
+%-------------set paths in compliance with Cha's code structure-----------%
+
+% path of research, which contains toolbox
+path_research = fileparts(fileparts(fileparts(fullfile(cd))));
+
+% path of code, which
+path_code = fileparts(cd);
+path_DB = fullfile(path_code,'DB');
+path_DB_raw = fullfile(path_DB,name_DB_raw);
+path_DB_process = fullfile(path_DB,name_DB_process);
+path_DB_analy = fullfile(path_DB_process,name_DB_analy);
+%-------------------------------------------------------------------------%
+
+%-------------------------add functions-----------------------------------%
 % get toolbox
-addpath(genpath(fullfile(fileparts(fileparts(fileparts(cd))),'_toolbox')));
+addpath(genpath(fullfile(path_research,'_toolbox')));
+
 % add functions
 addpath(genpath(fullfile(cd,'functions')));
-% path for processed data
-path_parent=fileparts(pwd); % parent path which has DB files
-% get path
-path_DB_process = fullfile(path_parent,'DB','DB_processed2');
-path_folder_anlaysis = fullfile(path_DB_process,name_folder);
+%-------------------------------------------------------------------------%
 
-%-----------------------experiment information-----------------------------
+
+
+%-----------------------experiment information----------------------------%
+% period of facial expression
+period_fe_exp = 3;
+period_margin_FE_front =1; % time period to be used before instruction
+period_margin_FE_end = 0; % time period to be used after instruction
+
+% samping period of facial expression (window increase size)
+period_sampling = 0.1;
+
+
+% list of paris of instruction and trigger
+name_trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",...
+    1,4;"눈 세게 감기",1,5;"두려움",1,6;"행복",1,7;"키스",2,1;"무표정",2,2;...
+    "슬픔",2,3;"놀람",2,4};
+name_fe = name_trg(:,1);
+
 % list of markers
 name_mark = {'central down lip';'central nose';'central upper lip';'head 1';...
     'head 2';'head 3';'head 4';'jaw';'left central lip';'left cheek';...
@@ -43,63 +76,47 @@ name_mark = {'central down lip';'central nose';'central upper lip';'head 1';...
     'right down lip';'right eyebrow inside';'right eyebrow outside';...
     'right nose';'right upper eye';'right upper lip'};
 
-% list of paris of instruction and trigger
-name_Trg = {"화남",1,1;"어금니깨물기",1,2;"비웃음(왼쪽)",1,3;"비웃음(오른쪽)",...
-    1,4;"눈 세게 감기",1,5;"두려움",1,6;"행복",1,7;"키스",2,1;"무표정",2,2;...
-    "슬픔",2,3;"놀람",2,4};
-name_FE = name_Trg(:,1);
-%--------------------------------------------------------------------------
+% read file path of data from raw DB
+[name_sub,path_sub] = read_names_of_file_in_folder(fullfile(path_code,'DB','DB_raw2'));
 
-% changed expreesion order like
-%["무표정";"화남";"어금니깨물기";"비웃음(왼쪽)";"비웃음(오른쪽)";
-%"눈 세게 감기";"두려움";"행복";"키스";"슬픔";"놀람"]
-% idx_FE_2_change  = [9,1:8,10:11];
 
-% number of experimnet information
-[name_sub,path_sub] = read_names_of_file_in_folder(fullfile(path_parent,'DB','DB_raw2'));
+
+% number of subject, trials, triggers and channels
 n_sub = length(name_sub);
 n_trl = 20;
+n_emg_pair = 3;
+n_ch_emg = 4;
+n_fe = length(name_fe);
+n_win = period_fe_exp/period_sampling;
 n_mark = 28;
 n_mark_type = 3;
-n_trg = 26;
-n_emgpair = 3;
-
-% period of facial expression
-period_FE_exp = 3;
-period_sampling = 0.1;
-n_FE = length(name_FE);
-n_seg = period_FE_exp/period_sampling;
-period_margin_FE_front =1; % 표정 인스트럭션 전 후 1초
-n_seg2margin_front = period_margin_FE_front/period_sampling;
-period_margin_FE_end =0; % 표정 인스트럭션 전 후 1초
-n_seg2margin_end = period_margin_FE_end/period_sampling;
-n_seg_total = n_seg+n_seg2margin_front+n_seg2margin_end;
-
 idx_marker_type = 1 : n_mark_type;% 1:X,2:Y,3:Z
 
-% %% prepare save folder
-% Name_folder = sprintf('N_word_%d_N_line_%d_size_line_spac_%d',...
-%     N_word_in_line,N_line,size_inc_height);
-% path4saving = make_path_n_retrun_the_path(path_DB,Name_folder);
+% number of windows for margin front and end
+n_win2margin_front = period_margin_FE_front/period_sampling;
+n_win2margin_end= period_margin_FE_end/period_sampling;
+n_win_total = n_win+n_win2margin_front+n_win2margin_end;
+%-------------------------------------------------------------------------%
+
+%----------------------memory allocation for results----------------------%
+mark_seg = cell(n_sub,n_trl,n_fe,n_mark);
+%-------------------------------------------------------------------------%
 
 % Get median value from marker
 for i_sub = 1 : n_sub
     for i_trl = 1 : n_trl
         disp([i_sub,i_trl]);
         for i_mark = 1 : n_mark
-            try
             % display of marker
-%             disp(name_mark(i_mark));
-            
-            % folder name 4 saving
-            name_mark_folder = sprintf('mark_%d',i_mark);
+            disp(name_mark(i_mark));
             
             % set path
-            path_mark = fullfile(path_folder_anlaysis,name_mark_folder);
+            path_mark = fullfile(path_DB_analy,...
+                [name_DB_marker,'_',num2str(i_mark)]);
             marker_set = cell(n_sub,n_trl);
             
             % read marker
-            name_file = sprintf('sub_%03d_trl_%03d_raw',i_sub,i_trl);
+            name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
             
             % load mark windows with respect of subject and trial
             load(fullfile(path_mark,name_file)); % get markers
@@ -110,67 +127,51 @@ for i_sub = 1 : n_sub
             for i_win = 1 : len_win
                 % get median value
                 mark_median(i_win,:)= median(mark_win{i_win}(:,idx_marker_type),1);
-            end
-            
-            % change unit ( m --> mm) 
-%             mark_median = mark_median * 1000;
-            mark_median = mark_median;
-            %--------------------save median_v----------------------------%
-            % set saving folder;
-%             name_folder = ['median_v','_',name_mark_folder];
-%             if exist(fullfile(path_folder_anlaysis,name_folder),'dir');
-%                 rmdir(fullfile(path_folder_anlaysis,name_folder), 's')
-%             end
-
-%             path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
-%             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
-%             
-%             % save
-%             save(fullfile(path_tmp,name_file),'mark_median');
-%             
-%             if(id_plot)
-%             % plot
-%             figure;plot(mark_median)
-%             end
-            %-------------------------------------------------------------%    
+            end   
             
             % extracted part of preiod of facial expression
-            mark_median_cell = cell(n_FE,1);
-            mark_median_diff_cell= cell(n_FE,1);
-            for i_FE = 1 : n_FE
-                mark_median_cell{idx_seq_FE(i_FE)} = ...
-                    mark_median(trg_w(i_FE)-n_seg2margin_front:...
-                    trg_w(i_FE)+n_seg-1+n_seg2margin_end,:);
+            mark_ext = cell(n_fe,1);
+            for i_fe = 1 : n_fe
+                try
+                    mark_ext{idx_seq_fe(i_fe)} = ...
+                    mark_median(trg_w(i_fe)-n_win2margin_front:...
+                    trg_w(i_fe)+n_win-1+n_win2margin_end,:);
+                catch
+                    mark_ext{idx_seq_fe(i_fe)} = ...
+                        NaN(n_win_total,n_mark_type);
+                end
             end
-            % change it in the order like
-            %["무표정";"화남";"어금니깨물기";"비웃음(왼쪽)";"비웃음(오른쪽)";
-            %"눈 세게 감기";"두려움";"행복";"키스";"슬픔";"놀람"]
-%             mark_median_diff_cell = mark_median_diff_cell(idx_FE_2_change);
-%             mark_median_cell = mark_median_cell(idx_FE_2_change);
             
-            % get median values of front part of signal segment whose
-            % lengh is n_seg2margin (10 --> 1-sec)
-            mark_median_each_front = cellfun(@(x) median(x(1:n_seg2margin_front,:)), mark_median_cell,...
+            %-----------------marker singal processing--------------------%
+            
+            %=========baseline processing using 
+            % get median values of front part before facial expression 
+            mark_median_each_front = ...
+                cellfun(@(x) median(x(1:n_win2margin_front,:)), mark_ext,...
                 'UniformOutput',false);
             
             % substract median values of front part of signal from
             % median mark values
-            mark_median_cell_each_front = cellfun(@(x) x-median(x(1:n_seg2margin_front,:)), mark_median_cell,...
+            mark_median_cell_each_front = cellfun(@(x)...
+                x-median(x(1:n_win2margin_front,:)), mark_ext,...
                 'UniformOutput',false);
             
             % substitue front part with zeros
             % cf: this values shoud have been zeros if marker is collected
             % properly
             mark_median_cell_each_frontend_zero = cellfun(@(x)...
-                x-[x(1:n_seg2margin_front,:);zeros(n_seg,3);...
-                x(n_seg_total-n_seg2margin_end+1:...
-                n_seg_total,:)],...
+                x-[x(1:n_win2margin_front,:);zeros(n_win,3);...
+                x(n_win_total-n_win2margin_end+1:...
+                n_win_total,:)],...
                 mark_median_cell_each_front,'UniformOutput',false);
+            %=========baseline processing end
+          
+%             % to plot, change cell to mat
+%             mark_median_ = cell2mat(mark_seg);
+            % collected DB with subject, tiral, emotion and emgpair
+%             mark_seg(i_sub,i_trl,:,i_emg_pair) = emg_segment;
             
-            % to plot, change cell to mat
-            mark_median_ = cell2mat(mark_median_cell);
-            
-            mark_median_proc = cell2mat(mark_median_cell_each_frontend_zero);
+            mark_seg_proc = cell2mat(mark_median_cell_each_frontend_zero);
             
             
             % substitue signal part who ranged with neutral exp with zeros
@@ -178,221 +179,29 @@ for i_sub = 1 : n_sub
             % properly
             % I should first get min and max for neutral exp to get
             % ranges of neutral exp
-            minmax_mark_medain_neutral = minmax(mark_median_proc((n_seg_total)*(9-1)+1:...
-                (n_seg_total)*9,:)');
+            minmax_mark_medain_neutral = minmax(mark_seg_proc((n_win_total)*(9-1)+1:...
+                (n_win_total)*9,:)');
             
             for i_marktype = 1 : n_mark_type
                 % get idices of values who are in range of
                 % non - expression
-                idx_min = mark_median_proc(:,i_marktype)>=minmax_mark_medain_neutral(i_marktype,1);
-                idx_max = mark_median_proc(:,i_marktype)<=minmax_mark_medain_neutral(i_marktype,2);
+                idx_min = mark_seg_proc(:,i_marktype)...
+                    >=minmax_mark_medain_neutral(i_marktype,1);
+                idx_max = mark_seg_proc(:,i_marktype)...
+                    <=minmax_mark_medain_neutral(i_marktype,2);
                 idx_range_in_nonexp = idx_min.*idx_max;
                 
                 % substitue idices with zeros
-                mark_median_proc(logical(idx_range_in_nonexp),i_marktype) = 0;
+                mark_seg_proc(logical(idx_range_in_nonexp),i_marktype) = 0;
             end
+            %-----------------marker singal processing end----------------%
             
-            %--------------------save median_v----------------------------%
-            % set saving folder;
-            name_folder = ['median_v_proc','_',name_mark_folder];
-            path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
-            name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
-            
-            % save
-            save(fullfile(path_tmp,name_file),'mark_median_proc');
-            
-            % set saving folder;
-            name_folder = ['median_v_rearranged','_',name_mark_folder];
-            path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
-            name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
-
-            % save
-            save(fullfile(path_tmp,name_file),'mark_median_');
-            
-            if(id_plot)
-            % plot
-            figure;title('substitue signal part who ranged with neutral exp with zeros')
-            plot(mark_median_proc)
-            text(1:n_seg_total:n_FE*(n_seg_total),...
-                min(min(mark_median_proc))*ones(n_FE,1),...
-                name_FE)
-            hold on;
-            stem(1:n_seg_total:n_FE*(n_seg_total),...
-                min(min(mark_median_proc))*ones(n_FE,1),'k')
-            hold on
-            stem(1:n_seg_total:n_FE*(n_seg_total),...
-                max(max(mark_median_proc))*ones(n_FE,1),'k')
-
-            % save plot
-            savefig(gcf,fullfile(path_tmp,name_file));
-            close;
-            end
-            %-------------------------------------------------------------% 
-            
-            
-            % restore signal wih baseline of neutral exp
-%             mark_median_cell_return = mat2cell(mark_median_proc,...
-%                 n_seg_total*ones(n_FE,1),n_mark_type);
-%             mark_restored = cell(size(mark_median_cell_return));
-%             for i = 1 : numel(mark_median_cell_return)
-%                 % 처음 무표정 값의 baseline으로 맞추어줌
-%                 mark_restored{i} = mark_median_cell_return{i}+mark_median_each_front{1};
-%             end
-%             mark_restored_mat = cell2mat(mark_restored);
-            
-            %-----------save restored singal with fixed baseline-----------%
-            % set saving folder;
-
-%             name_folder = ['median_v_restored','_',name_mark_folder];
-%             if exist(fullfile(path_folder_anlaysis,name_folder),'dir');
-%                 rmdir(fullfile(path_folder_anlaysis,name_folder), 's')
-%             end
-%             path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
-%             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
-%             
-%             % save
-%             save(fullfile(path_tmp,name_file),'mark_restored_mat');
-%             
-%             % plot
-%             if(id_plot)
-%             figure;title('restored signal who ranged with neutral exp with zeros and baselin_with_non-exp')
-%             plot(mark_restored_mat)
-%             text(1:n_seg_total:n_FE*(n_seg_total),...
-%                 min(min(mark_restored_mat))*ones(n_FE,1),...
-%                 name_FE(idx_FE_2_change))
-%             hold on;
-%             stem(1:n_seg_total:n_FE*(n_seg_total),...
-%                 min(min(mark_restored_mat))*ones(n_FE,1),'k')
-%             hold on
-%             stem(1:n_seg_total:n_FE*(n_seg_total),...
-%                 max(max(mark_restored_mat))*ones(n_FE,1),'k')
-%             end
-            %-------------------------------------------------------------% 
-            catch ex
-                load('C:\Users\A\Desktop\CHA\연구\EMG_marker_regression\코드\DB\DB_processed2\DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_408_wininc_204_delay_0\median_v_proc_mark_9\sub_001_trl_008.mat');
-                name_folder = ['median_v_proc','_',name_mark_folder];
-                path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
-                name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
-                mark_median_proc = NaN(size(mark_median_proc));
-                % save
-                save(fullfile(path_tmp,name_file),'mark_median_proc');
-            end
+            % collected DB with subject, tiral, emotion and emgpair
+            mark_seg(i_sub,i_trl,:,i_mark) = mat2cell(mark_seg_proc,...
+                    n_win_total*ones(n_fe,1),n_mark_type);
         end
     end
 end
-
-
-
-%-----------------------just for back up----------------------------
-% differentiate
-% mark_diff_prcd = diff(mark_median);
-% mark_diff_prcd(abs(mark_diff_prcd)<0.1) = 0;
-% mark_raw_prcd= cumsum(mark_diff_prcd);
-% temp_diff = diff(mark_diff_prcd(trg_w(i_FE)-n_seg2margin:...
-% trg_w(i_FE)+n_seg-1+n_seg2margin,:));
-% mark_median_diff_cell{idx_seq_FE(i_FE)} = [temp_diff(1,:);temp_diff];
-
-            % z-normalization of each cell            
-%             plot(zscore(mark_median_proc))
-%             
-%             tmp_m_set_median_znorm = cellfun(@zscore,tmp_m_set_median,'UniformOutput',false);
-%             tmp_m_set_median_mat = cell2mat(tmp_m_set_median_znorm);
-%             figure;
-%             plot(tmp_m_set_median_mat)
-%             text(1:n_seg2use+20:n_FE*(n_seg2use+20),min(min(tmp_m_set_median_mat))*ones(n_FE,1),...
-%                  name_FE(idx_FE_2_change))
-%              hold on;
-%             stem(1:n_seg2use+20:n_FE*(n_seg2use+20),min(min(tmp_m_set_median_mat))*ones(n_FE,1),'k')
-%             hold on
-%             stem(1:n_seg2use+20:n_FE*(n_seg2use+20),max(max(tmp_m_set_median_mat))*ones(n_FE,1),'k')
-            
-% minmax norm of each cell
-%     tmp_m_set_median_norm_minmax = cellfun(@norm_minmax,tmp_m_set_median,'UniformOutput',false);
-%     tmp_m_set_median_mat = cell2mat(tmp_m_set_median_norm_minmax);
-%     figure;
-%     plot(tmp_m_set_median_mat)
-%     text(1:n_seg2use+20:n_FE*(n_seg2use+20),min(min(tmp_m_set_median_mat))*ones(n_FE,1),...
-%          name_FE(idx_FE_2_change))
-% 
-% 
-% zscore
-%     figure;
-%     plot(zscore(tmp_m_set_median))
-%      text(1:n_seg2use:n_FE*n_seg2use,min(min(zscore(tmp_m_set_median)))*ones(n_FE,1),...
-%          name_FE(idx_FE_2_change))
-% 
-% 
-%     marker_non_exp = mark_median_diff_cell_corrected_order{1};
-% 
-% diff --> 적분
-%     mark_median_integ_cell = cellfun(@cumsum,mark_median_diff_cell,'UniformOutput',false);
-% 
-%     %cell to mat
-%     tmp_m_set_median_mat = cell2mat(mark_median_integ_cell);
-%     % 무표정으로 뺀 그림
-%     figure;
-%     plot(tmp_m_set_median_mat)
-%     text(1:n_seg2use+20:n_FE*(n_seg2use+20),min(min(tmp_m_set_median_mat))*ones(n_FE,1),...
-%          name_FE(idx_FE_2_change))
-%      hold on;
-%     stem(1:n_seg2use+20:n_FE*(n_seg2use+20),min(min(tmp_m_set_median_mat))*ones(n_FE,1),'k')
-%     hold on
-%     stem(1:n_seg2use+20:n_FE*(n_seg2use+20),max(max(tmp_m_set_median_mat))*ones(n_FE,1),'k')
-% 
-% 
-% 
-% change it in the order like
-% ["무표정";"화남";"어금니깨물기";"비웃음(왼쪽)";"비웃음(오른쪽)";
-% "눈 세게 감기";"두려움";"행복";"키스";"슬픔";"놀람"]
-%     tmp_m_set_median = tmp_m_set_median(idx_FE_2_change);
-%     marker_non_exp = tmp_m_set_median{1};
-%     tmp_m_set_median_mat = cell2mat(tmp_m_set_median);
-% 
-% 무표정 빼기
-% 
-%     marker_bs = median(marker_non_exp);
-%     mark_bs_pc = tmp_m_set_median - marker_bs;
-%     figure;
-%     plot(mark_bs_pc);title(name_mark(i_mark))
-%     text(1:n_seg2use:n_FE*n_seg2use,min(min(mark_bs_pc))*ones(n_FE,1),...
-%         name_FE(idx_FE_2_change))
-% 
-%     get min max normalization
-%     Max = max(tmp_m_set_median);
-%     Min = min(tmp_m_set_median);
-%     mark_n = (tmp_m_set_median-Min)./(Max-Min);
-%     figure;
-%     plot(mark_n);title(name_mark(i_mark))
-%     text(1:n_seg2use:n_FE*n_seg2use,min(min(mark_n))*ones(n_FE,1),...
-%     name_FE(idx_FE_2_change))
-% 
-% a=1;
-% 
-%      zscore(mark_bs_pc);
-% 
-%      Max = max(mark_bs_pc);
-%      Min = min(mark_bs_pc);
-%      mark_n = (mark_bs_pc-Min)./(Max-Min);
-% 
-% polyfit amd reject baseline of marker values
-%     mark_fit = zeros(len_win,n_mark_type);
-%     for i_markType = 1 : n_mark_type
-%         p = polyfit(1:len_win,mark_median(:,i_markType)',3); % 3차 polyfit
-%         mark_fit(:,i_markType) = polyval(p,1:len_win);
-%     end
-%     mark_base_corr = mark_median - mark_fit;
-% 
-%     switch id_type_norm
-%         case str_use_cal_norm
-%         %% Calibration session에서 Nomalization
-%             Max = max(d_2_norm(1 : trg_w(6),:));
-%             Min = min(d_2_norm(1 : trg_w(6),:));
-%             mark_n = (d_2_norm-Min)./(Max-Min);
-%         case id_type_norm
-%         %% zscore normaliztion
-%             mark_n = zscore(mark_base_corr(:,1:n_mark_type),0,1);
-%     end
-% 저장
-%     marker_set{i_sub,i_trl} = mark_n;
-    % set saving file name for each marker
-%     save(fullfile(path_tmp,'marker_set'),'marker_set');
+%-----------------------------save emg_seg--------------------------------%
+save(fullfile(path_DB_analy,[name_DB_marker,'_mark_seg']),'mark_seg');
+%-------------------------------------------------------------------------%
