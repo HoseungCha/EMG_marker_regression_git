@@ -110,7 +110,7 @@ for i_sub = 1 : n_sub
             continue;
         end
         
-        for i_mark = 1 : n_mark
+        for i_mark = 10
             % display of marker
 %             disp(name_mark(i_mark));
             
@@ -136,8 +136,8 @@ for i_sub = 1 : n_sub
             end
             
             % change unit ( m --> mm) 
-            mark_median = mark_median * 1000;
-
+%             mark_median = mark_median * 1000;
+            mark_median = mark_median;
             %--------------------save median_v----------------------------%
             % set saving folder;
             name_folder = ['median_v','_',name_mark_folder];
@@ -150,6 +150,7 @@ for i_sub = 1 : n_sub
             if(id_plot)
             % plot
             figure;plot(mark_median)
+            close(gcf);
             end
             %-------------------------------------------------------------%    
             
@@ -160,7 +161,6 @@ for i_sub = 1 : n_sub
                 mark_median_cell{idx_seq_FE(i_FE)} = ...
                     mark_median(trg_w(i_FE)-n_seg2margin_front:...
                     trg_w(i_FE)+n_seg-1+n_seg2margin_end,:);
-
             end
             % change it in the order like
             %["무표정";"화남";"어금니깨물기";"비웃음(왼쪽)";"비웃음(오른쪽)";
@@ -196,6 +196,8 @@ for i_sub = 1 : n_sub
                 mark_median_cell_each_front,'UniformOutput',false);
             
             % to plot, change cell to mat
+            mark_median_ = cell2mat(mark_median_cell);
+            
             mark_median_proc = cell2mat(mark_median_cell_each_frontend_zero);
             
             
@@ -226,6 +228,14 @@ for i_sub = 1 : n_sub
             % save
             save(fullfile(path_tmp,name_file),'mark_median_proc');
             
+            % set saving folder;
+            name_folder = ['median_v_rearranged','_',name_mark_folder];
+            path_tmp = make_path_n_retrun_the_path(path_folder_anlaysis,name_folder);
+            name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
+
+            % save
+            save(fullfile(path_tmp,name_file),'mark_median_');
+            
             if(id_plot)
             % plot
             figure;title('substitue signal part who ranged with non-expression with zeros')
@@ -239,6 +249,7 @@ for i_sub = 1 : n_sub
             hold on
             stem(1:n_seg_total:n_FE*(n_seg_total),...
                 max(max(mark_median_proc))*ones(n_FE,1),'k')
+            close(gcf);
             end
             %-------------------------------------------------------------% 
             
@@ -275,7 +286,9 @@ for i_sub = 1 : n_sub
             hold on
             stem(1:n_seg_total:n_FE*(n_seg_total),...
                 max(max(mark_restored_mat))*ones(n_FE,1),'k')
+            close(gcf);
             end
+            
             %-------------------------------------------------------------% 
             disp([i_sub,i_trl]);
         end
