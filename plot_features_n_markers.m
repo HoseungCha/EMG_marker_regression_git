@@ -30,7 +30,7 @@ name_emg_file = 'emg_pair_emg_seg';
 % name of file emg DB
 name_marker_file = 'mark_mark_seg';
 
-name_norm_method ='do_each'; %do_each, do_all_emotion
+name_norm_method ='do_all_emotion'; %do_each, do_all_emotion
 %-------------------------------------------------------------------------%
 
 %-------------set paths in compliance with Cha's code structure-----------%
@@ -190,7 +190,8 @@ for i_fe = 1 : length(idx_mark2use_cell)
                     tmp = [tmp;i_face_part];
                 end
             end
-            idx_emg_chan2plot = fu_cell{tmp}{1};
+            tmp2 = cat(1,fu_cell{tmp});
+            idx_emg_chan2plot = cat(1,tmp2{:,1});
             
             % get DB of that emotion
             tmp_mark = mark_seg(:,:,idx_fe_org,i_mark);

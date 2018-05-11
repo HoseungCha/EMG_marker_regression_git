@@ -125,6 +125,9 @@ for i_sub = 1 : n_sub
             len_win = length(mark_win); % number of windows
             mark_median = zeros(len_win,n_mark_type);
             for i_win = 1 : len_win
+                if any(any(isnan(mark_win{i_win})))
+                    keyboard;
+                end
                 % get median value
                 mark_median(i_win,:)= median(mark_win{i_win}(:,idx_marker_type),1);
             end   

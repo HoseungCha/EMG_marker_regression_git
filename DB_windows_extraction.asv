@@ -256,8 +256,6 @@ for i_trl = 4 : n_trl
     marker_raw = csvread(path_csv{i_trl},7,2);
     marker_raw = reshape(marker_raw,length(marker_raw),3,n_marker);
     
-    marker_raw
-    
    
     
 %     for i_mark = 1 : n_marker

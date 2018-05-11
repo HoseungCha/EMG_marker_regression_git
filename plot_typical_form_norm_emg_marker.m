@@ -16,7 +16,8 @@ close all; clc; clear
 name_DB_process = 'DB_processed2';
 
 % name of anlaysis DB in the process DB
-name_DB_analy = 'DB_raw2_to_10Hz_cam_winsize_24_wininc_12_emg_winsize_408_wininc_204_delay_0';
+name_DB_analy =...
+    'DB_raw2_marker_wsize_24_winc_12_emg_wsize_408_winc_204_delay_0';
 
 %-------------------------------------------------------------------------%
 
@@ -31,41 +32,25 @@ path_DB = fullfile(path_code,'DB');
 % path_DB_raw = fullfile(path_DB,name_DB_raw);
 path_DB_process = fullfile(path_DB,name_DB_process);
 path_DB_analy = fullfile(path_DB_process,name_DB_analy);
-path_DB_plot = fullfile(path_DB_analy,'Norm_type-do_all_emotion');
+path_DB_plot = fullfile(path_DB_analy,'do_all_emotion'); %do_each 
 %-------------------------------------------------------------------------%
 
 %-------------------------add functions-----------------------------------%
 addpath(genpath(fullfile(path_research,'_toolbox')));
 %-------------------------------------------------------------------------%
 
-%------------------------experiment infromation---------------------------%
-%-------------------------------------------------------------------------%
-
-
-%----------------------------paramters------------------------------------%
-
-%-------------------------------------------------------------------------%
-
-%----------------------set saving folder----------------------------------%
-
-%-------------------------------------------------------------------------%
-
-%----------------------memory allocation for results----------------------%
-
-%-------------------------------------------------------------------------%
-
 %------------------------------------main---------------------------------%
 
 % find typical fig
 [name_fig,path_fig] = read_names_of_file_in_folder(path_DB_plot,'*fig');
-tmp_idx = contains(name_fig,'template');
+tmp_idx = contains(name_fig,'rep');
 name_fig = name_fig(tmp_idx);
 path_fig = path_fig(tmp_idx);
 
-name_fig_reshape= reshape(name_fig,[5,10])';
+% name_fig_reshape= reshape(name_fig,[5,10])';
 
 % plot emg
-f = figure;
+f1 = figure;
 for i = 1 : numel(path_fig)
     s = subplot(10,5,i);
     h = openfig(path_fig{i});
@@ -73,12 +58,11 @@ for i = 1 : numel(path_fig)
     s.YLim = [0 1];
     s.XTickLabel = [];
     s.YTickLabel = [];
-    idx_dot = strfind(name_fig{i},'.');
-    s.XLabel.String  = name_fig{i}(idx_dot-35:idx_dot-10)
-    pause(0.1);
+    s.XLabel.String = strrep(name_fig{i}, '_',' ');
+    pause(0.01);
     close(h);
 end
-% tightfig(f);
+tightfig(f1);
 clear s h
 
 % plot marker
@@ -90,18 +74,16 @@ for i = 1 : numel(path_fig)
     s.YLim = [-1 1];
     s.XTickLabel = [];
     s.YTickLabel = [];
-    idx_dot = strfind(name_fig{i},'.');
-    s.XLabel.String  = name_fig{i}(idx_dot-35:idx_dot-10)
-    pause(0.1);
+    s.XLabel.String = strrep(name_fig{i}, '_',' ');
+    pause(0.01);
     close(h);
 end
 tightfig(f2);
+%-------------------------------main end----------------------------------%
 
-
-
-%-------------------------------------------------------------------------%
-
-%-------------------------------save results------------------------------%
+%-------------------------------save fig----------------------------------%
+savefig(f1,fullfile(path_DB_plot,'emg_rep'));
+savefig(f2,fullfile(path_DB_plot,'mark_rep'));
 %-------------------------------------------------------------------------%
 
 
