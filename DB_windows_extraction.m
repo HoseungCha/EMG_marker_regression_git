@@ -30,7 +30,7 @@ ratio_winsize_by_wininc = 2; %this value will be multipied wininc to get winsize
 % it is regared that original delay is about 480E-03
 % Interestingly, when delay is zero, the signal of emg and marker almost
 % moves at the same time (I checked it by plotting both signals)
-size_delay_between_marker_and_emg = 0;
+size_delay_between_mark_and_emg = 0;
 %=========================================================================%
 
 
@@ -82,9 +82,9 @@ name_mark = {'central down lip';'central nose';'central upper lip';'head 1';...
 % number of subjects, trials, channels, marker types, 
 n_sub = length(name_sub);
 n_trl = 20;
-n_marker = 28;
+n_mark = 28;
 n_emg_pair = 3;
-n_marker_type = 3;
+n_mark_type = 3;
 idx_trg = cell2mat(name_trl(:,2:3));
 %-------------------------------------------------------------------------%
 
@@ -120,7 +120,7 @@ name_folder4saving = ...
 '%s_marker_wsize_%d_winc_%d_emg_wsize_%d_winc_%d_delay_%d',...
     name_DB_raw,winsize_marker,wininc_marker,...
     winsize_emg,wininc_emg,...
-    size_delay_between_marker_and_emg);
+    size_delay_between_mark_and_emg);
 
 % path for saving
 path_DB_save = make_path_n_retrun_the_path(fullfile(path_DB_process),...
@@ -129,7 +129,7 @@ path_DB_save = make_path_n_retrun_the_path(fullfile(path_DB_process),...
 
 %------------------------------------main---------------------------------%
 % get windows from EMG and marker set with each subject and trials
-for i_sub= 2 : n_sub
+for i_sub= 5 : n_sub
     
 % get file path
 sub_name = name_sub{i_sub}(5:7); % get subject names
@@ -177,7 +177,7 @@ for i_trl = 4 : n_trl
         end
         
         % save NAN data for marker
-        for i_marker = 1 : n_marker
+        for i_marker = 1 : n_mark
             path_temp = make_path_n_retrun_the_path(path_DB_save,...
                 sprintf('mark_%d',i_marker)); % set folder name
             name_file = sprintf('sub_%03d_trl_%03d',...
@@ -229,7 +229,7 @@ for i_trl = 4 : n_trl
         
         % use emg data during marker acquasition
         emg_data = emg_data(lat_trg_onset+...
-            round(sf_emg*size_delay_between_marker_and_emg):end,:);
+            round(sf_emg*size_delay_between_mark_and_emg):end,:);
 
         lat_trg_emg = lat_trg-lat_trg_onset+1;% EMG 표정
         %동기화는 DELAY가 없기 때문에, DELAY 계산 필요 없음
@@ -252,67 +252,34 @@ for i_trl = 4 : n_trl
     end
     disp(name_file); % for check code processing
 
+    % read header of csv
+    loaded_csv=importdata(path_csv{i_trl});
+    marker_raw = loaded_csv.data
+    csvread(path_csv{i_trl},0,2,[1,0,2,2]);
+    
     % read marker csv 
     marker_raw = csvread(path_csv{i_trl},7,2);
-    marker_raw = reshape(marker_raw,length(marker_raw),3,n_marker);
+    marker_raw = reshape(marker_raw,length(marker_raw),3,n_mark);
     
-    marker_raw
-    
-   
-    
-%     for i_mark = 1 : n_marker
-%         figure(i_mark);
-%         plot(marker_raw(:,:,i_mark));
-%         hold on;
-%         plot(marker_raw(:,:,2));
-%     end
+    % get marker substracted by marker of nose     
+    marker_nose_sub = marker_raw - repmat(marker_raw(:,:,2),[1 1 n_mark]);
+    marker_nose_sub(:,:,2) = marker_raw(:,:,2);
 
-    for i_type = 1 : 3
-        figure(i_type);
-        for i_mark = [10 16 26 20] %[15 14 24 25] [10 16 26 20] [11 9 19 21]
-            plot(marker_raw(:,i_type,i_mark)*1000);
-            hold on;
-        end
-    end
-    
-    % get marker on nose     
-    marker_nose_sub = marker_raw - repmat(marker_raw(:,:,2),[1 1 28]);
-    marker_nose_sub = reshape(marker_raw,length(marker_raw),3,n_marker);    
-    
-    for i_type = 1 : 3
-        figure(i_type);
-        hold off;
-        for i_mark = [10 16 26 20] %[15 14 24 25] [10 16 26 20] [11 9 19 21]
-            plot(marker_nose_sub(:,i_type,i_mark)*1000);
-            hold on;
-        end
-    end
-    
-    
-    for i_marker = 1 : n_marker
-        if i_marker == 2 
-            % if nose marker, just use raw nose marker
-            mark_v = nose_marker;
-        else 
-            % substract markers from nose markers
-            mark_v = marker_raw(:,:,i_marker)-nose_marker;
-        end
-
+    %---------------------------save----------------------------------%
+    for i_mark = 1 : n_mark
         % get windows of markers
-        [mark_win,~] = getWindows(mark_v,...
+        [mark_win,~] = getWindows(marker_nose_sub(:,:,i_mark),...
                 winsize_marker,wininc_marker,[],[],[]); % get windows
-
-        %---------------------------save----------------------------------%
         % get path for saving
         path_temp = make_path_n_retrun_the_path(path_DB_save,...
-            sprintf('mark_%d',i_marker)); 
-        
+            sprintf('mark_%d',i_mark)); 
+
         % file name
         name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
-        
+
         % save it
         save(fullfile(path_temp,name_file),'mark_win','trg_w','idx_seq_fe');
-        %-----------------------------------------------------------------%
+    %-----------------------------------------------------------------%
     end
 end
 end
