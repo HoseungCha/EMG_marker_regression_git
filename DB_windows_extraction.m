@@ -129,7 +129,7 @@ path_DB_save = make_path_n_retrun_the_path(fullfile(path_DB_process),...
 
 %------------------------------------main---------------------------------%
 % get windows from EMG and marker set with each subject and trials
-for i_sub= 5 : n_sub
+for i_sub= 1 : n_sub
     
 % get file path
 sub_name = name_sub{i_sub}(5:7); % get subject names
@@ -144,7 +144,7 @@ disp(name_csv);
     fullfile(path_sub{i_sub},name_emg_folder),'*bdf');
 disp(name_bdf);
 
-for i_trl = 4 : n_trl
+for i_trl = 1 : n_trl
     
     % read BDF
     out = pop_biosig(path_bdf{i_trl});
@@ -254,16 +254,37 @@ for i_trl = 4 : n_trl
 
     % read header of csv
     loaded_csv=importdata(path_csv{i_trl});
-    marker_raw = loaded_csv.data
-    csvread(path_csv{i_trl},0,2,[1,0,2,2]);
+%     marker_raw = loaded_csv.data
+%     csvread(path_csv{i_trl},0,2,[1,0,2,2]);
+    % read labels
+    tmp_name_marker = loaded_csv.textdata{3, 1};
+    tmp_name_marker(1:2) = [];
+    idx_com = strfind(tmp_name_marker,',');
+    idx_col = strfind(tmp_name_marker,':');
     
+    for i = 1 : length(idx_col) 
+        if i==length(idx_col) 
+            name_mark{i} = tmp_name_marker(idx_col(i)+1:end);
+        else
+            name_mark{i} = tmp_name_marker(idx_col(i)+1:idx_com(i)-1);
+        end
+    end
+    name_mark = name_mark(1:3:84);
+    disp(name_mark);
+
     % read marker csv 
-    marker_raw = csvread(path_csv{i_trl},7,2);
+    marker_raw = loaded_csv.data(2:end,3:end);
     marker_raw = reshape(marker_raw,length(marker_raw),3,n_mark);
-    
+            
     % get marker substracted by marker of nose     
     marker_nose_sub = marker_raw - repmat(marker_raw(:,:,2),[1 1 n_mark]);
     marker_nose_sub(:,:,2) = marker_raw(:,:,2);
+    
+    % check if marker data are collcted properly
+%     tmp_idx = [14 2 3 1 8]; % [25 24 14 15] [20 26 16 10] [14 2 3 1 8]
+%     tmp = permute(marker_raw(:,2,tmp_idx),[1 3 2]);
+%     size(tmp)
+%     plot(tmp)
 
     %---------------------------save----------------------------------%
     for i_mark = 1 : n_mark

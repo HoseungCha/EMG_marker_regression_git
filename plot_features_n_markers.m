@@ -31,6 +31,12 @@ name_emg_file = 'emg_pair_emg_seg';
 name_marker_file = 'mark_mark_seg';
 
 name_norm_method ='do_all_emotion'; %do_each, do_all_emotion
+
+% decide if you are going to take out outliers(use it by sign)
+name_outlier = 'outlier_sign_data'; 
+
+% deciede indices to be examined
+idx_2_examine = 15:40;
 %-------------------------------------------------------------------------%
 
 %-------------set paths in compliance with Cha's code structure-----------%
@@ -109,10 +115,8 @@ n_win2use = 40;
 % n_trl2use = length(idx_trl2use);
 basline_text = 50;
 n_emg_ch = 4;
-n_mark_type = 3;
+n_mark_type = 2;
 % idx_marker2use = [1,3,9,10,11,14,15,16,19,20,21,25,25,26];
-
-i_emg_pair = 1;
 
 
 %-------------------------main--------------------------------------------%
@@ -124,6 +128,8 @@ load(fullfile(path_DB_analy,name_emg_file));
 % load marker
 load(fullfile(path_DB_analy,name_marker_file));
 [~,~,~,n_mark] = size(mark_seg);
+i_emg_pair = 1 ;
+% for i_emg_pair = 1 : n_emg_pair;
 
 %-------------------------normalization-----------------------------------%
 switch name_norm_method
@@ -152,7 +158,7 @@ switch name_norm_method
         end
         % get path for saving
         path_DB_save = make_path_n_retrun_the_path(...
-            path_DB_analy,name_norm_method);
+            path_DB_analy,[name_norm_method,'_',name_outlier]);
 end
 %-------------------------------------------------------------------------%
 
@@ -194,21 +200,36 @@ for i_fe = 1 : length(idx_mark2use_cell)
             idx_emg_chan2plot = cat(1,tmp2{:,1});
             
             % get DB of that emotion
-            tmp_mark = mark_seg(:,:,idx_fe_org,i_mark);
-            tmp_emg = emg_seg(:,:,idx_fe_org,i_emg_pair);
+            marker = mark_seg(:,:,idx_fe_org,i_mark);
+            emg = emg_seg(:,:,idx_fe_org,i_emg_pair);
             
             %------------------get median values--------------------------%
+            idx_outlier = cell(n_mark_type,1);
             mark_rep = zeros(n_win2use,n_mark_type);
             for i_mark_type = 1 : n_mark_type
-                tmp = cellfun(@(x) x(:,i_mark_type), tmp_mark,...
+                tmp = cellfun(@(x) x(:,i_mark_type), marker,...
                     'UniformOutput',false);
                 tmp = cat(2,tmp{:});
                 mark_rep(:,i_mark_type) = nanmedian(tmp,2);
+                
+                %---------------take out outliers on samples--------------%
+                % if representative value is less than zero
+                if mean(mark_rep(11:end,i_mark_type)) < 0
+                    tmp_idx_outlier = any(tmp(idx_2_examine,:)>0)==0;
+                else
+                    tmp_idx_outlier = any(tmp(idx_2_examine,:)<0)==0;
+                end
+
+%                 figure;plot(tmp);
+%                 figure;plot(tmp(:,tmp_idx_outlier))
+                idx_outlier{i_mark_type} = ...
+                    reshape(tmp_idx_outlier,n_sub,n_trl);
+                %---------------------------------------------------------%
             end
             
             emg_rep = zeros(n_win2use,n_emg_ch);
             for i_emg_ch = 1 : n_emg_ch
-                tmp = cellfun(@(x) x(:,i_emg_ch), tmp_emg,...
+                tmp = cellfun(@(x) x(:,i_emg_ch), emg,...
                         'UniformOutput',false);
                 tmp = cat(2,tmp{:});
                 emg_rep(:,i_emg_ch) = nanmedian(tmp,2);
@@ -221,44 +242,69 @@ for i_fe = 1 : length(idx_mark2use_cell)
                 i_mark,name_mark{i_mark});
             disp(name_save); 
             %--------------------------plot---------------------------%            
-            h1 = figure('Name',name_save,'NumberTitle','off');
-            subplot(2,1,1);
-            title('marker median 값')
-            plot(mark_rep(:,1:2));
-            ylim([-1 1])
-            subplot(2,1,2);
-            title('emg median 값')
-            plot(emg_rep);
-            ylim([-1 1])
-            % make it more tight
-            tightfig(h1);
+%             h1 = figure('Name',name_save,'NumberTitle','off');
+%             subplot(2,1,1);
+%             title('marker median 값')
+%             plot(mark_rep(:,1:2));
+%             ylim([-1 1])
+%             subplot(2,1,2);
+%             title('emg median 값')
+%             plot(emg_rep);
+%             ylim([-1 1])
+%             % make it more tight
+%             tightfig(h1);
             
-            h2 = figure('Name',name_save,'NumberTitle','off');
-            c = 0;
+            for i_mark_type = 1 : n_mark_type
+%             h2 = figure('Name',name_save,'NumberTitle','off');
+%             c = 0;
+%             for i_sub = 1 : n_sub
+%                 for i_trl = 1 : n_trl
+%                     c = c + 1;
+%                     subplot(n_sub,n_trl,c)
+%                     if idx_outlier{i_mark_type}(i_sub,i_trl)
+%                         plot(marker{i_sub,i_trl}(:,i_mark_type))
+%                     else
+%                         plot(marker{i_sub,i_trl}(:,i_mark_type),'r')
+%                     end
+%                     hold on;
+%                     plot(emg{i_sub,i_trl}(:,idx_emg_chan2plot),'k');
+%                     ylim([-1 1])
+%                     set(gca,'XTick',[]);
+%                     set(gca,'YTick',[]);
+%                 end
+%             end
+%             % make it more tight
+%             tightfig(h2);
+            
+            %-----------------------save fig--------------------------%
+%             savefig(h1,fullfile(path_DB_save,[name_save,'_rep_',num2str(i_mark_type)]));
+%             savefig(h2,fullfile(path_DB_save,[name_save,'_',num2str(i_mark_type)]));
+            %---------------------------------------------------------%
+            marker_axis = cell(n_sub,n_trl);
             for i_sub = 1 : n_sub
                 for i_trl = 1 : n_trl
-                    c = c + 1;
-                    subplot(n_sub,n_trl,c)
-                    plot(tmp_mark{i_sub,i_trl}(:,1:2))
-                    hold on;
-                    plot(tmp_emg{i_sub,i_trl}(:,idx_emg_chan2plot),'k');
-                    ylim([-1 1])
-                    set(gca,'XTick',[]);
-                    set(gca,'YTick',[]);
+                    if idx_outlier{i_mark_type}(i_sub,i_trl)
+                        marker_axis{i_sub,i_trl}...
+                            = marker{i_sub,i_trl}(:,i_mark_type);
+                    else
+                        marker_axis{i_sub,i_trl}...
+                            = NaN(size(marker{i_sub,i_trl}(:,i_mark_type)));
+                    end
                 end
             end
-            % make it more tight
-            tightfig(h2);
-            %-----------------------save fig--------------------------%
-            savefig(h1,fullfile(path_DB_save,[name_save,'_rep']));
-            savefig(h2,fullfile(path_DB_save,name_save));
+            %-----------------------save data--------------------------%
+            save(fullfile(path_DB_save,[name_save,'_',num2str(i_mark_type),'_marker']),...
+               'marker_axis' );
+            
             %---------------------------------------------------------%
+            end
+            save(fullfile(path_DB_save,[name_save,'_emg']),...
+                'emg','idx_emg_chan2plot');
             close all;
         end
     end
 end
-
-
+% end
 
 %=========================functions=======================================%
 

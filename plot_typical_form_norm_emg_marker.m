@@ -32,7 +32,7 @@ path_DB = fullfile(path_code,'DB');
 % path_DB_raw = fullfile(path_DB,name_DB_raw);
 path_DB_process = fullfile(path_DB,name_DB_process);
 path_DB_analy = fullfile(path_DB_process,name_DB_analy);
-path_DB_plot = fullfile(path_DB_analy,'do_all_emotion'); %do_each 
+path_DB_plot = fullfile(path_DB_analy,'do_each'); %do_each 
 %-------------------------------------------------------------------------%
 
 %-------------------------add functions-----------------------------------%
