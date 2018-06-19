@@ -1,10 +1,7 @@
 %-------------------------------------------------------------------------%
-% 1: DB_windows_extraion.m 
+% 1: DB_windows_extraion.m
 % 2: Marker_v_ext_from_windows.m
-% 3: EMG_feat_ext_from_windows.m   %%%%%current code%%%%%%%%%%%%%%
-% 4: minmax_n_ouliers_ext.m 
-% 5: cali_train_text_val_indx_selection.m 
-% 6: reg_db_construction.m
+% 3: EMG_feat_ext_from_windows.m %%%%%current code%%%%%%%%%%%%%%
 %-------------------------------------------------------------------------%
 % developed by Ho-Seung Cha, Ph.D Student,
 % CONE Lab, Biomedical Engineering Dept. Hanyang University

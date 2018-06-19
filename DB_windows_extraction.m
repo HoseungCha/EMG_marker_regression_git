@@ -1,8 +1,10 @@
 %--------------------------------------------------------------------------
-% this code is about extraction of DB of marker and EMG)
-% 1: DB_windows_extraion.m %-current code-%
+% 1: DB_windows_extraion.m %%%%%current code%%%%%%%%%%%%%%
 % 2: Marker_v_ext_from_windows.m
-% 3: EMG_feat_ext_from_windows.m
+% 3: EMG_feat_ext_from_windows.m 
+% 4: minmax_n_ouliers_ext.m 
+% 5: cali_train_text_val_indx_selection.m 
+% 6: reg_db_construction.m
 %--------------------------------------------------------------------------
 % developed by Ho-Seung Cha, Ph.D Student,
 % CONE Lab, Biomedical Engineering Dept. Hanyang University

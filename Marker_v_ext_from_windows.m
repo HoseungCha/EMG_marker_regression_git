@@ -1,7 +1,10 @@
 %--------------------------------------------------------------------------
-% 1: DB_windows_extraion.m
-% 2: Marker_v_ext_from_windows.m %-current code-%
-% 3: EMG_feat_ext_from_windows.m
+% 1: DB_windows_extraion.m 
+% 2: Marker_v_ext_from_windows.m %%%%%current code%%%%%%%%%%%%%%
+% 3: EMG_feat_ext_from_windows.m 
+% 4: minmax_n_ouliers_ext.m 
+% 5: cali_train_text_val_indx_selection.m 
+% 6: reg_db_construction.m
 %--------------------------------------------------------------------------
 % developed by Ho-Seung Cha, Ph.D Student,
 % CONE Lab, Biomedical Engineering Dept. Hanyang University
@@ -55,7 +58,7 @@ addpath(genpath(fullfile(cd,'functions')));
 % period of facial expression
 period_fe_exp = 3;
 period_margin_FE_front =1; % time period to be used before instruction
-period_margin_FE_end = 0; % time period to be used after instruction
+period_margin_FE_end = 1; % time period to be used after instruction
 
 % samping period of facial expression (window increase size)
 period_sampling = 0.1;
@@ -90,6 +93,7 @@ n_fe = length(name_fe);
 n_win = period_fe_exp/period_sampling;
 n_mark = 28;
 n_mark_type = 3;
+n_xyz = 3;
 idx_marker_type = 1 : n_mark_type;% 1:X,2:Y,3:Z
 
 % number of windows for margin front and end
@@ -99,21 +103,20 @@ n_win_total = n_win+n_win2margin_front+n_win2margin_end;
 %-------------------------------------------------------------------------%
 
 %----------------------memory allocation for results----------------------%
-mark_seg = cell(n_sub,n_trl,n_fe,n_mark);
+mark_seq = cell(n_sub,n_trl,n_mark,n_xyz);
+mark_seg = cell(n_sub,n_trl,n_fe,n_mark,n_xyz);
 %-------------------------------------------------------------------------%
 
 % Get median value from marker
-for i_sub = 1 : n_sub
-    for i_trl = 1 : n_trl
-        disp([i_sub,i_trl]);
-        for i_mark = 1 : n_mark
+for i_mark = 1 : n_mark
+    % set path
+    path_mark = fullfile(path_DB_analy,...
+        [name_DB_marker,'_',num2str(i_mark)]);
+    for i_sub = 1 : n_sub
+        for i_trl = 1 : n_trl
+            disp([i_sub,i_trl]);
             % display of marker
             disp(name_mark(i_mark));
-            
-            % set path
-            path_mark = fullfile(path_DB_analy,...
-                [name_DB_marker,'_',num2str(i_mark)]);
-            marker_set = cell(n_sub,n_trl);
             
             % read marker
             name_file = sprintf('sub_%03d_trl_%03d',i_sub,i_trl);
@@ -123,24 +126,24 @@ for i_sub = 1 : n_sub
             
             % get median value from windows
             len_win = length(mark_win); % number of windows
-            mark_median = zeros(len_win,n_mark_type);
+            mark_feat = zeros(len_win,n_mark_type);
             for i_win = 1 : len_win
-                
                 % get median value
-                mark_median(i_win,:)= nanmedian(mark_win{i_win}(:,idx_marker_type),1);
-                if any(isnan(mark_median(i_win,:)))
-%                     keyboard;
-                    mark_median(i_win,:) = mark_median(i_win-1,:);
-                    a=1;
+                mark_feat(i_win,:)= nanmedian(mark_win{i_win}(:,idx_marker_type),1);
+                if any(isnan(mark_feat(i_win,:)))
+                % if segment of marker has any of NaN, use it previous one.
+                    mark_feat(i_win,:) = mark_feat(i_win-1,:);
                 end
             end   
+            
+            
             
             % extracted part of preiod of facial expression
             mark_ext = cell(n_fe,1);
             for i_fe = 1 : n_fe
                 try
                     mark_ext{idx_seq_fe(i_fe)} = ...
-                    mark_median(trg_w(i_fe)-n_win2margin_front:...
+                    mark_feat(trg_w(i_fe)-n_win2margin_front:...
                     trg_w(i_fe)+n_win-1+n_win2margin_end,:);
                 catch
                     mark_ext{idx_seq_fe(i_fe)} = ...
@@ -149,7 +152,6 @@ for i_sub = 1 : n_sub
             end
             
             %-----------------marker singal processing--------------------%
-            
             %=========baseline processing using 
             % get median values of front part before facial expression 
             mark_median_each_front = ...
@@ -202,12 +204,31 @@ for i_sub = 1 : n_sub
             end
             %-----------------marker singal processing end----------------%
             
+            for i_xyz = 1 : n_xyz
+                mark_seg(i_sub,i_trl,:,i_mark,i_xyz) = mat2cell(mark_seg_proc(:,i_xyz),...
+                    n_win_total*ones(n_fe,1));
+            end
             % collected DB with subject, tiral, emotion and emgpair
-            mark_seg(i_sub,i_trl,:,i_mark) = mat2cell(mark_seg_proc,...
-                    n_win_total*ones(n_fe,1),n_mark_type);
+            
+            % restored marker with baseline
+            tmp = mat2cell(mark_seg_proc,n_win_total*ones(n_fe,1));
+            mark_feat_restored = zeros(len_win,n_mark_type);
+            for i_fe = 1 : n_fe
+                mark_feat_restored(trg_w(i_fe)-n_win2margin_front+1:...
+                trg_w(i_fe)+n_win+n_win2margin_end,:) = tmp{i_fe};
+            end
+            
+            %====================SAVE=====================================%
+            for i_xyz = 1 : n_xyz
+                mark_seq{i_sub,i_trl,i_mark,i_xyz} = mark_feat_restored(:,i_xyz);
+            end
+            %=============================================================%
+            
         end
     end
 end
-%-----------------------------save emg_seg--------------------------------%
-save(fullfile(path_DB_analy,[name_DB_marker,'_mark_seg']),'mark_seg');
+%-----------------------------save marker_seg--------------------------------%
+save(fullfile(path_DB_analy,'regression',['mark_seg','-',n_win_total]),'mark_seg');
+save(fullfile(path_DB_analy,'regression',['mark_seq','-',n_win_total]),'mark_seq');
+
 %-------------------------------------------------------------------------%
