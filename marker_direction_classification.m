@@ -162,8 +162,6 @@ cali.minmax_emg = minmax_emg;
 for i_kfold = 1 : val.kfold
 
 %============================SUBJECT DEPENDENT============================%
-
-
 %------------TRAIN
 n = length(val.idx_db_train{i_kfold});
 xtrain = cell(n,1); ytrain = cell(n,1);
@@ -187,7 +185,7 @@ for i = 1 : n
     i_sub = val.idx_db_test{i_kfold}(i,1);
     i_ses = val.idx_db_test{i_kfold}(i,2);
     
-    [xtest{i},ytest{i},xtest_mm{i},ytest_mm{i}] = get_test...
+    [xtest{i},ytest{i}] = get_test...
     (emg_seq,mark_seq,i_sub,i_ses,i_mark,i_xyz,val,i_emg_pair,cali,mark_minmax,mv_size);
 
     % for facial expression part
@@ -204,21 +202,21 @@ name2save = sprintf('mark_%d_xyz_%d_emg_pair_%d_mv_size_%d',...
 % save train/test DB
 path_saving = make_path_n_retrun_the_path(fullfile(path_DB_save,'DB'),name2save);
 save(fullfile(path_saving,sprintf('dep_kfold_%d',i_kfold)),...
-    'xtrain','ytrain','xtrain_mm','ytrain_mm','xtest','ytest',...
-    'xtest_mm','ytest_mm','ytest_valid','val');
+    'xtrain','ytrain','xtest','ytest',...
+    'ytest_valid','val');
 %=========================================================================%
 
 %==========================SUBJECT INDEPENDENT============================%
 %------------TRAIN
 n = length(val.idx_db_train_ind{i_kfold});
 xtrain = cell(n,1); ytrain = cell(n,1);
-xtrain_mm = cell(n,1); ytrain_mm = cell(n,1);
+% xtrain_mm = cell(n,1); ytrain_mm = cell(n,1);
 for i = 1 : n
     i_sub = val.idx_db_train_ind{i_kfold}(i,1);
     i_ses = val.idx_db_train_ind{i_kfold}(i,2);
     i_fe = val.idx_db_train_ind{i_kfold}(i,3);
     
-    [xtrain{i},ytrain{i},xtrain_mm{i},ytrain_mm{i}] = get_train...
+    [xtrain{i},ytrain{i}] = get_train...
     (emg_seg,mark_seg,emg_minmax,mark_minmax,i_sub,i_ses,i_fe,i_mark,i_xyz,val,i_emg_pair,cali,mv_size);
 end
 
@@ -226,12 +224,12 @@ end
 n = length(val.idx_db_test_ind{i_kfold});
 xtest = cell(n,1); ytest = cell(n,1);
 ytest_valid =cell(n,1);
-xtest_mm = cell(n,1); ytest_mm = cell(n,1);
+% xtest_mm = cell(n,1); ytest_mm = cell(n,1);
 for i = 1 : n
     i_sub = val.idx_db_test_ind{i_kfold}(i,1);
     i_ses = val.idx_db_test_ind{i_kfold}(i,2);
     
-    [xtest{i},ytest{i},xtest_mm{i},ytest_mm{i}] = get_test...
+    [xtest{i},ytest{i}] = get_test...
     (emg_seq,mark_seq,i_sub,i_ses,i_mark,i_xyz,val,i_emg_pair,cali,mark_minmax,mv_size);
 
     % for facial expression part
@@ -242,8 +240,8 @@ for i = 1 : n
 end
 
 save(fullfile(path_saving,sprintf('ind_kfold_%d',i_kfold)),...
-    'xtrain','ytrain','xtrain_mm','ytrain_mm','xtest','ytest',...
-    'xtest_mm','ytest_mm','ytest_valid','val');
+    'xtrain','ytrain','xtest','ytest',...
+    'ytest_valid','val');
 %=========================================================================%
 
 end
@@ -338,12 +336,12 @@ ytest = (tmp - tmp1(:,1)')./(tmp1(:,2)'-tmp1(:,1)');
 
 %---------------------------MINMAX REGRESSION-------------------------%
 % MINMAX emg (input X)
-xtest_mm = permute(cali.minmax_emg(i_sub,:,:),[3 2 1]);
-xtest_mm = xtest_mm(:,2);
+% xtest_mm = permute(cali.minmax_emg(i_sub,:,:),[3 2 1]);
+% xtest_mm = xtest_mm(:,2);
 % marker (target Y)
-tmp = mark_minmax(i_sub,i_ses,i_mark,i_xyz);
-tmp = cell2mat(squeeze(tmp));
-ytest_mm = tmp(:,2);
+% tmp = mark_minmax(i_sub,i_ses,i_mark,i_xyz);
+% tmp = cell2mat(squeeze(tmp));
+% ytest_mm = tmp(:,2);
 %---------------------------------------------------------------------%
 end
 

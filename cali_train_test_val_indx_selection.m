@@ -31,10 +31,14 @@ name_DB_analy = 'DB_raw2_marker_wsize_24_winc_12_emg_wsize_408_winc_204_delay_0'
 name4save = 'regression';
 
 % decide what numberth of calibration session is going to be used 
-numberth_cali_session = 1;
+% number_cali_ses = [1 2 3];
+number_cali_ses = [1];
+n_number_cali_ses = length(number_cali_ses);
 
 % decide k fold croess validation
-kfold = 5;
+% kfold_list = [4 5];
+kfold_list = [5];
+n_kfold = length(kfold_list);
 %-------------------------------------------------------------------------%
 
 %-------------set paths in compliance with Cha's code structure-----------%
@@ -61,6 +65,7 @@ load(fullfile(path_DB_save,'mark_out'));
 
 % inspection
 load(fullfile(path_DB_inspect,'label_inspected')); 
+label_inspected = matrix; clear matrix
 %-------------------------------------------------------------------------%
 
 %------------------------experiment infromation---------------------------%
@@ -92,8 +97,12 @@ name_fe = {'angry','clench','contm_left','contm_right',...
 %------------------------------------main---------------------------------%
 
 %==========CALI/TRAIN/TEST INDEX SELECTOIN========%
-val_inform = cell(n_mark,n_xyz,n_emg_pair);
+val_inform = cell(n_mark,n_xyz,n_emg_pair,n_number_cali_ses,n_kfold);
 
+c_kfold = 0;
+for kfold = kfold_list
+c_kfold = c_kfold+1;
+for i_number_cali_ses = 1 : n_number_cali_ses
 for i_emg_pair = 1 : n_emg_pair;
 for i_xyz = 1 : n_xyz;
 for i_mark = idx_mark_used
@@ -115,7 +124,7 @@ end
 % decide calibration session as labeling '3'
 idx_cali_session = NaN(n_sub,1);
 for i_sub = 1 : n_sub
-idx_cali_session(i_sub) = find(valid_idx(i_sub,:)==1,numberth_cali_session);
+idx_cali_session(i_sub) = find(valid_idx(i_sub,:)==1,number_cali_ses);
 valid_idx(i_sub,idx_cali_session(i_sub)) = 3;
 end
 idx_cali_session = [(1:n_sub)',idx_cali_session];
@@ -150,65 +159,67 @@ end
 % and facial expression. Depending on how we validate, we can split the
 % indices in subject independent manner or subject dependt manner
 
-%===========subject independet manner
 
-% counts the occurences of each unique subjct for sepration
-[valid_sub_idx,~,idx] = unique(valid_idx_total(:,1));
-ncount_sub = accumarray(idx(:),1);
 
-% In total unique subjects, choose indices of subject to be used in
-% training set by cross-validaiton KFold method
-n_sub_valid = length(valid_sub_idx);
-n_sub_train = floor(n_sub_valid*(kfold-1)/kfold);
-cvo = cvpartition(n_sub_valid,'KFold',kfold);
-
-% memory allocation
-idx_db_train_ind = cell(kfold,1);
-idx_db_test_ind = cell(kfold,1);
-trainsize = NaN(kfold,1);
-testsize = NaN(kfold,1);
-for i_kfold = 1 : kfold
-    tmp = randperm(n_sub_valid);
-    trainsize(i_kfold) = sum(ncount_sub(cvo.training(i_kfold)));
-    testsize(i_kfold) = sum(ncount_sub(cvo.test(i_kfold)));
-    
-    idx = countmember(valid_idx_total(:,1),find(cvo.training(i_kfold)==1))==1;
-    idx_db_train_ind{i_kfold} = valid_idx_total(idx==1,:);
-    idx_db_test_ind{i_kfold} = valid_idx_total(idx==0,:);
-end
 
 %===========subject dependet manner
 % we do not care how index is included in subject or session, which means
 % there is little chance that the indices were splited 
 % in subject independent manner
-
-cvo_sub = cvpartition(length(valid_idx_total),'KFold',kfold);
+unique_idx = unique(valid_idx_total(:,1:2),'row');
+cvo = cvpartition(length(unique_idx),'KFold',kfold);
 idx_db_train = cell(kfold,1);
 idx_db_test = cell(kfold,1);
 for i_kfold = 1 : kfold
-    idx_db_train{i_kfold} = valid_idx_total(training(cvo_sub,i_kfold),:); 
-    idx_db_test{i_kfold} = valid_idx_total(test(cvo_sub,i_kfold),:);    
+    A = valid_idx_total(:,1:2);
+    B = unique_idx(training(cvo,i_kfold),:);
+    idx_db_train{i_kfold} = valid_idx_total(ismember(A,B,'rows'),:); 
+    
+    A = valid_idx_total(:,1:2);
+    B = unique_idx(test(cvo,i_kfold),:);
+%     idx_db_test{i_kfold} = valid_idx_total(ismember(A,B,'rows'),:); 
+    idx_db_test{i_kfold} = B;
 end
+
+%===========subject independet manner
+unique_idx = unique(valid_idx_total(:,1),'row');
+cvo_ind = cvpartition(length(unique_idx),'KFold',kfold);
+idx_db_train_ind = cell(kfold,1);
+idx_db_test_ind = cell(kfold,1);
+for i_kfold = 1 : kfold
+    A = valid_idx_total(:,1);
+    B = unique_idx(training(cvo_ind,i_kfold),:);
+    idx_db_train_ind{i_kfold} = valid_idx_total(ismember(A,B,'rows'),:); 
+    
+    A = valid_idx_total(:,1);
+    B = unique_idx(test(cvo_ind,i_kfold),:);
+    C = valid_idx_total(ismember(A,B,'rows'),:); 
+    idx_db_test_ind{i_kfold} =  unique(C(:,1:2),'rows');
+end
+
 
 % saving necessary indices by collecting into variable 'tmp'
 clear tmp;
+tmp.valid_idx_total = valid_idx_total;
 tmp.idx_cali_session = idx_cali_session;
-tmp.cvo_sub = cvo_sub;
+tmp.cvo_sub = cvo;
 tmp.idx_db_train_ind = idx_db_train_ind;
 tmp.idx_db_test_ind = idx_db_test_ind;
-tmp.trainsize_ind = trainsize;
-tmp.testsize_ind = testsize;
-tmp.cvo = cvo;
+% tmp.trainsize_ind = trainsize;
+% tmp.testsize_ind = testsize;
+tmp.cvo = cvo_ind;
 tmp.idx_db_train = idx_db_train;
 tmp.idx_db_test = idx_db_test;
 tmp.idx_fe_used = idx_fe_used;
 tmp.idx_emg_ch = idx_emg_ch;
 tmp.kfold = kfold;
-tmp.numberth_cali_session = numberth_cali_session; 
+tmp.numberth_cali_session = number_cali_ses; 
 
 % save validation information in varible 'val_inform'
-val_inform{i_mark,i_xyz,i_emg_pair} = tmp;
+val_inform{i_mark,i_xyz,i_emg_pair,i_number_cali_ses,c_kfold} = tmp;
 
+end
+end
 end
 end
 end
