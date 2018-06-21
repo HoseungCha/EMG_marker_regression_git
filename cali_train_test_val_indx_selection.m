@@ -32,13 +32,10 @@ name4save = 'regression';
 
 % decide what numberth of calibration session is going to be used 
 % number_cali_ses = [1 2 3];
-number_cali_ses = [1];
-n_number_cali_ses = length(number_cali_ses);
+number_cali_ses = 1;
 
 % decide k fold croess validation
-% kfold_list = [4 5];
-kfold_list = [5];
-n_kfold = length(kfold_list);
+kfold = 5;
 %-------------------------------------------------------------------------%
 
 %-------------set paths in compliance with Cha's code structure-----------%
@@ -97,12 +94,8 @@ name_fe = {'angry','clench','contm_left','contm_right',...
 %------------------------------------main---------------------------------%
 
 %==========CALI/TRAIN/TEST INDEX SELECTOIN========%
-val_inform = cell(n_mark,n_xyz,n_emg_pair,n_number_cali_ses,n_kfold);
+val_inform = cell(n_mark,n_xyz,n_emg_pair);
 
-c_kfold = 0;
-for kfold = kfold_list
-c_kfold = c_kfold+1;
-for i_number_cali_ses = 1 : n_number_cali_ses
 for i_emg_pair = 1 : n_emg_pair;
 for i_xyz = 1 : n_xyz;
 for i_mark = idx_mark_used
@@ -216,13 +209,12 @@ tmp.kfold = kfold;
 tmp.numberth_cali_session = number_cali_ses; 
 
 % save validation information in varible 'val_inform'
-val_inform{i_mark,i_xyz,i_emg_pair,i_number_cali_ses,c_kfold} = tmp;
+val_inform{i_mark,i_xyz,i_emg_pair} = tmp;
 
 end
 end
 end
-end
-end
+
 %-------------------------------------------------------------------------%
 
 %-------------------------------save results------------------------------%

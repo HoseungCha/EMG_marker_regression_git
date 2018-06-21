@@ -24,9 +24,7 @@ name_DB_process = 'DB_processed2';
 % name of anlaysis DB in the process DB
 name_DB_analy = 'DB_raw2_marker_wsize_24_winc_12_emg_wsize_408_winc_204_delay_0';
 
-% Name to load
-name4save = 'regression';
-
+% moving
 mv_size = 5;
 %-------------------------------------------------------------------------%
 
@@ -36,7 +34,8 @@ path_research = fileparts(fileparts(fileparts(fullfile(cd))));
 % path of code, which 
 path_code = fileparts(fullfile(cd));
 path_DB_process = fullfile(path_code,'DB',name_DB_process);
-path_DB_save = fullfile(path_DB_process,name_DB_analy,name4save);
+path_DB_reg = fullfile(path_DB_process,name_DB_analy,'regression');
+path_DB_dir= fullfile(path_DB_process,name_DB_analy,'direction');
 path_DB_inspect = fullfile(path_DB_process,name_DB_analy,'inspection');
 %-------------------------------------------------------------------------%
 
@@ -49,15 +48,21 @@ addpath(genpath(fullfile(cd,'functions')));
 %-------------------------------------------------------------------------%
 %-----------------------------load DB-------------------------------------%
 % DB
-load(fullfile(path_DB_save,'emg_seg')); 
-load(fullfile(path_DB_save,'emg_seq')); 
-load(fullfile(path_DB_save,'mark_seg')); 
-load(fullfile(path_DB_save,'mark_seq')); 
-load(fullfile(path_DB_save,'emg_minmax')); 
-load(fullfile(path_DB_save,'mark_minmax')); 
+load(fullfile(path_DB_reg,'emg_seg')); 
+load(fullfile(path_DB_reg,'emg_seq')); 
+load(fullfile(path_DB_reg,'mark_seg')); 
+load(fullfile(path_DB_reg,'mark_seq')); 
+load(fullfile(path_DB_reg,'emg_minmax')); 
+load(fullfile(path_DB_reg,'mark_minmax')); 
 
 % inspection
-load(fullfile(path_DB_save,'val_inform')); 
+load(fullfile(path_DB_reg,'val_inform')); 
+
+% direction infromation
+info_dir = xlsread(fullfile(path_DB_dir,'direction_information'),1,'A1:M15');
+info_dir = mat2cell(info_dir,ones(size(info_dir,1),1),[1 4 4 4]);
+info_dir(1,:) = [];
+info_dir = cellfun(@(x) x(~isnan(x)),info_dir,'UniformOutput',false);
 %-------------------------------------------------------------------------%
 
 %------------------------experiment infromation---------------------------%
@@ -163,36 +168,31 @@ for i_kfold = 1 : val.kfold
 
 %============================SUBJECT DEPENDENT============================%
 %------------TRAIN
-n = length(val.idx_db_train{i_kfold});
+idx_db_train = unique(val.idx_db_train{i_kfold}(:,1:2),'row');
+n = length(idx_db_train);
 xtrain = cell(n,1); ytrain = cell(n,1);
 % xtrain_mm = cell(n,1); ytrain_mm = cell(n,1);
 for i = 1 : n
-    i_sub = val.idx_db_train{i_kfold}(i,1);
-    i_ses = val.idx_db_train{i_kfold}(i,2);
-    i_fe = val.idx_db_train{i_kfold}(i,3);
+    i_sub = idx_db_train(i,1);
+    i_ses = idx_db_train(i,2);
     
     [xtrain{i},ytrain{i}] = get_train...
-    (emg_seg,mark_seg,emg_minmax,mark_minmax,i_sub,i_ses,i_fe,i_mark,i_xyz,val,i_emg_pair,cali,mv_size);
+    (emg_seg,mark_seg,emg_minmax,mark_minmax,i_sub,i_ses,...
+    i_mark,i_xyz,val,i_emg_pair,cali,mv_size,info_dir);
 end
 
 
 %-------------TEST
 n =length(val.idx_db_test{i_kfold});
 xtest = cell(n,1); ytest = cell(n,1);
-ytest_valid =cell(n,1);
 % xtest_mm = cell(n,1); ytest_mm = cell(n,1);
 for i = 1 : n
     i_sub = val.idx_db_test{i_kfold}(i,1);
     i_ses = val.idx_db_test{i_kfold}(i,2);
     
-    [xtest{i},ytest{i}] = get_test...
-    (emg_seq,mark_seq,i_sub,i_ses,i_mark,i_xyz,val,i_emg_pair,cali,mark_minmax,mv_size);
-
-    % for facial expression part
-    path = fullfile(path_DB_process,name_DB_analy,['mark_',num2str(i_mark)],...
-        sprintf('sub_%03d_trl_%03d',i_sub,i_ses));
-    load(path,'trg_w')
-    ytest_valid{i} = trg_w;
+    [xtest{i},ytest{i}] = get_train...
+    (emg_seg,mark_seg,emg_minmax,mark_minmax,i_sub,i_ses,...
+    i_mark,i_xyz,val,i_emg_pair,cali,mv_size,info_dir);
 end
 
 % set file name for saving
@@ -200,24 +200,25 @@ name2save = sprintf('mark_%d_xyz_%d_emg_pair_%d_mv_size_%d',...
     i_mark,i_xyz,i_emg_pair,mv_size);
 
 % save train/test DB
-path_saving = make_path_n_retrun_the_path(fullfile(path_DB_save,'DB'),name2save);
+path_saving = make_path_n_retrun_the_path(fullfile(path_DB_reg,'direction'),name2save);
 save(fullfile(path_saving,sprintf('dep_kfold_%d',i_kfold)),...
     'xtrain','ytrain','xtest','ytest',...
-    'ytest_valid','val');
+    'val');
 %=========================================================================%
 
 %==========================SUBJECT INDEPENDENT============================%
 %------------TRAIN
-n = length(val.idx_db_train_ind{i_kfold});
+idx_db_train = unique(val.idx_db_train_ind{i_kfold}(:,1:2),'row');
+n = length(idx_db_train);
 xtrain = cell(n,1); ytrain = cell(n,1);
 % xtrain_mm = cell(n,1); ytrain_mm = cell(n,1);
 for i = 1 : n
     i_sub = val.idx_db_train_ind{i_kfold}(i,1);
     i_ses = val.idx_db_train_ind{i_kfold}(i,2);
-    i_fe = val.idx_db_train_ind{i_kfold}(i,3);
     
     [xtrain{i},ytrain{i}] = get_train...
-    (emg_seg,mark_seg,emg_minmax,mark_minmax,i_sub,i_ses,i_fe,i_mark,i_xyz,val,i_emg_pair,cali,mv_size);
+    (emg_seg,mark_seg,emg_minmax,mark_minmax,i_sub,i_ses,...
+    i_mark,i_xyz,val,i_emg_pair,cali,mv_size,info_dir);
 end
 
 %-------------TEST
@@ -229,19 +230,14 @@ for i = 1 : n
     i_sub = val.idx_db_test_ind{i_kfold}(i,1);
     i_ses = val.idx_db_test_ind{i_kfold}(i,2);
     
-    [xtest{i},ytest{i}] = get_test...
-    (emg_seq,mark_seq,i_sub,i_ses,i_mark,i_xyz,val,i_emg_pair,cali,mark_minmax,mv_size);
-
-    % for facial expression part
-    path = fullfile(path_DB_process,name_DB_analy,['mark_',num2str(i_mark)],...
-        sprintf('sub_%03d_trl_%03d',i_sub,i_ses));
-    load(path,'trg_w')
-    ytest_valid{i} = trg_w;
+    [xtest{i},ytest{i}] = get_train...
+    (emg_seg,mark_seg,emg_minmax,mark_minmax,i_sub,i_ses,...
+    i_mark,i_xyz,val,i_emg_pair,cali,mv_size,info_dir);
 end
 
 save(fullfile(path_saving,sprintf('ind_kfold_%d',i_kfold)),...
     'xtrain','ytrain','xtest','ytest',...
-    'ytest_valid','val');
+    'val');
 %=========================================================================%
 
 end
@@ -253,96 +249,63 @@ end
 
 %-------------------------------functions
 function [xtrain,ytrain,xtrain_mm,ytrain_mm] = get_train...
-(emg_seg,mark_seg,emg_minmax,mark_minmax,i_sub,i_ses,i_fe,i_mark,i_xyz,val,i_emg_pair,cali,mv_size)
-    %---------------------------FaceTrack REGRESSION----------------------%
+(emg_seg,mark_seg,emg_minmax,mark_minmax,i_sub,i_ses,i_mark,i_xyz,val,i_emg_pair,cali,mv_size,info_dir)
 % emg (input X)
-tmp = emg_seg(i_sub,i_ses,i_fe,val.idx_emg_ch,i_emg_pair);
+
+tmp = emg_seg(i_sub,i_ses,:,val.idx_emg_ch,i_emg_pair);
 tmp = squeeze(tmp);
-tmp = cat(2,tmp{:});
+tmp = cell2mat(tmp);
 
 % normalization by calibration
 % tmp1 = cell2mat(squeeze(emg_minmax(i_sub,i_ses,val.idx_emg_ch,i_emg_pair)));
 tmp1 = permute(cali.minmax_emg(i_sub,:,:),[3 2 1]);
-xtrain = (tmp - tmp1(:,1)')./(tmp1(:,2)'-tmp1(:,1)');
+d_n = (tmp - tmp1(:,1)')./(tmp1(:,2)'-tmp1(:,1)');
 
+d_n = mat2cell(d_n,40*ones(11,1),size(d_n,2));
 
-% classification by face part classfier
-% output = NaN(size(xtrain,1),length(val.idx_emg_ch));
-% for j = 1 :length(val.idx_emg_ch)
-%     c = val.idx_emg_ch(j);
-%     mdl = cali.model{i_sub}.mdl{c};
-%     temp = predict(mdl,xtrain(:,j));
-%     output(:,j) = majority_vote_simple(temp,[-1 0 1],mv_size);
-% end
+tmp_markList = cell2mat(info_dir(:,1));
+tmp_class = info_dir(tmp_markList==i_mark,2:end);
 
-% cancatinating
-% xtrain = [xtrain,output];
-
-% marker (target Y)
-tmp = mark_seg(i_sub,i_ses,i_fe,i_mark,i_xyz);
-tmp = squeeze(tmp);
-tmp = cat(2,tmp{:});
-
-% normalization by calibration
-% tmp1 = cell2mat(squeeze(mark_minmax(i_sub,i_ses,i_mark,i_xyz)));
-tmp1 = permute(cali.minmax_mark(i_sub,:,:),[3 2 1]);
-ytrain = (tmp - tmp1(:,1)')./(tmp1(:,2)'-tmp1(:,1)');
-%---------------------------------------------------------------------%
-
-%---------------------------MINMAX REGRESSION-------------------------%
-% MINMAX emg (input X)
-% tmp = emg_minmax(i_sub,i_ses,val.idx_emg_ch,i_emg_pair);
-% tmp = cell2mat(squeeze(tmp));
-% xtrain_mm = tmp(:,2);
-% 
-% % marker (target Y)
-% tmp = mark_minmax(i_sub,i_ses,i_mark,i_xyz);
-% tmp = cell2mat(squeeze(tmp));
-% ytrain_mm = tmp(:,2);
-%---------------------------------------------------------------------%
+xtrain = [];
+ytrain = [];
+c = 0;
+for i = [1 2 3]
+    c = c + 1;
+    label_list = tmp_class{c};
+    for j = label_list
+        xtrain = [xtrain;d_n{j}(11:40,:)];
+        ytrain = [ytrain;i*ones(30,1)];
+    end
+end
 end
 
 function [xtest,ytest,xtest_mm,ytest_mm] = ...
-get_test(emg_seq,mark_seq,i_sub,i_ses,i_mark,i_xyz,val,i_emg_pair,cali,mark_minmax,mv_size)
-%---------------------------FaceTrack REGRESSION----------------------%
+get_test(emg_seg,mark_seg,i_sub,i_ses,i_mark,i_xyz,val,i_emg_pair,cali,mark_minmax,mv_size,info_dir)
 % emg (input X)
-tmp = emg_seq(i_sub,i_ses,val.idx_emg_ch,i_emg_pair);
+tmp = emg_seg(i_sub,i_ses,:,val.idx_emg_ch,i_emg_pair);
 tmp = squeeze(tmp);
-tmp = cat(2,tmp{:});
+tmp = cell2mat(tmp);
 
 % normalization by calibration
+% tmp1 = cell2mat(squeeze(emg_minmax(i_sub,i_ses,val.idx_emg_ch,i_emg_pair)));
 tmp1 = permute(cali.minmax_emg(i_sub,:,:),[3 2 1]);
-xtest = (tmp - tmp1(:,1)')./(tmp1(:,2)'-tmp1(:,1)');
+d_n = (tmp - tmp1(:,1)')./(tmp1(:,2)'-tmp1(:,1)');
+d_n = mat2cell(d_n,40*ones(11,1),2);
 
-% classification by face part classfier
-% output = NaN(length(xtest),length(val.idx_emg_ch));
-% for j = 1 :length(val.idx_emg_ch)
-%     c = val.idx_emg_ch(j);
-%     mdl = cali.model{i_sub}.mdl{c};
-%     temp = predict(mdl,xtest(:,j));
-%     output(:,j) = majority_vote_simple(temp,[-1 0 1],mv_size);
-% end
+tmp_markList = cell2mat(info_dir(:,1));
+tmp_class = info_dir(tmp_markList==i_mark,2:end);
 
-% concatinating
-% xtest = [xtest,output];
-
-% marker (target Y)
-tmp1 = permute(cali.minmax_mark(i_sub,:,:),[3 2 1]);
-tmp = mark_seq{i_sub,i_ses,i_mark,i_xyz};
-ytest = (tmp - tmp1(:,1)')./(tmp1(:,2)'-tmp1(:,1)');
-
-% ytest = cat(2,tmp{:});
-%---------------------------------------------------------------------%
-
-%---------------------------MINMAX REGRESSION-------------------------%
-% MINMAX emg (input X)
-% xtest_mm = permute(cali.minmax_emg(i_sub,:,:),[3 2 1]);
-% xtest_mm = xtest_mm(:,2);
-% marker (target Y)
-% tmp = mark_minmax(i_sub,i_ses,i_mark,i_xyz);
-% tmp = cell2mat(squeeze(tmp));
-% ytest_mm = tmp(:,2);
-%---------------------------------------------------------------------%
+xtest = [];
+ytest = [];
+c = 0;
+for i = [0 -1 1]
+    c = c + 1;
+    label_list = tmp_class{c};
+    for j = label_list
+        xtrain = [xtrain;d_n{j}];
+        ytrain = [ytrain;i*ones(40,1)];
+    end
+end
 end
 
 function yp = majority_vote_simple(xp,idx_target2classify,maj_size)
