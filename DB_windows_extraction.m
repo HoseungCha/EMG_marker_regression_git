@@ -56,7 +56,7 @@ path_DB_process = fullfile(path_DB,name_DB_process);
 
 
 %-------------------------add functions-----------------------------------%
-addpath(genpath(fullfile(path_research,'_toolbox')));
+addpath(genpath(fullfile('E:\Hanyang\¿¬±¸\_toolbox\EEG_acquasition_related\eeglab11_0_5_4b')));
 addpath(genpath(fullfile(cd,'functions'))); % add path for functions
 %-------------------------------------------------------------------------%
 
@@ -260,6 +260,14 @@ for i_trl = 1 : n_trl
 %     csvread(path_csv{i_trl},0,2,[1,0,2,2]);
     % read labels
     tmp_name_marker = loaded_csv.textdata{3, 1};
+    
+    % all units --> Milimeter
+    if strfind(loaded_csv.textdata{1},'Meters')
+        
+    elseif strfind(loaded_csv.textdata{1},'Milimeters')
+        
+    end
+    
     tmp_name_marker(1:2) = [];
     idx_com = strfind(tmp_name_marker,',');
     idx_col = strfind(tmp_name_marker,':');
